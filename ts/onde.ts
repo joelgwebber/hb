@@ -1,3 +1,4 @@
+/// <reference path="api.ts" />
 /// <reference path="editor.ts" />
 /// <reference path="lib/ace.d.ts" />
 /// <reference path="lib/sockjs.d.ts" />
@@ -5,19 +6,19 @@
 module onde {
   var logElem = <HTMLInputElement>document.getElementById("log");
   var statusElem = document.getElementById("status");
+  var editElem = document.getElementById("doc");
 
-  function log(msg) {
+  var editor: Editor;
+  var sock: SockJS;
+  var userId: string;
+
+  function log(msg: string) {
     logElem.value += msg + "\n";
   }
 
-  function setStatus(msg) {
+  function setStatus(msg: string) {
     statusElem.textContent = msg;
   }
-
-  var docElem = document.getElementById("doc");
-  var doc;
-  var sock;
-  var userId;
 
   function onOpen() {
     log("connection open");
@@ -29,34 +30,36 @@ module onde {
     setStatus("disconnected");
   }
 
-  function onMessage(e) {
-    var rsp = JSON.parse(e.data);
+  function onMessage(e: SJSMessageEvent) {
+    var rsp = <Rsp>JSON.parse(e.data);
     switch (rsp.Type) {
-      case "login":
+      case MsgLogin:
         userId = rsp.Login.UserId;
         log("user id: " + userId);
         setStatus("logged in");
-        sock.send(JSON.stringify({
-          Type: "subscribe",
+        var req: Req = {
+          Type: MsgSubscribe,
           Subscribe: { DocId: "wut" }
-        }));
+        };
+        sock.send(JSON.stringify(req));
         break;
 
-      case "subscribe":
-        doc = new Doc(docElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
-          sock.send(JSON.stringify({
-            Type: "revise",
+      case MsgSubscribe:
+        editor = new Editor(editElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
+          var req: Req = {
+            Type: MsgRevise,
             Revise: { UserId: userId, Rev: rev, Ops: ops }
-          }));
+          };
+          sock.send(JSON.stringify(req));
         });
         break;
 
-      case "revise":
+      case MsgRevise:
         var err;
         if (rsp.Revise.UserId == userId) {
-          err = doc.ackOps(rsp.Revise.Ops);
+          err = editor.ackOps(rsp.Revise.Ops);
         } else {
-          err = doc.recvOps(rsp.Revise.Ops)
+          err = editor.recvOps(rsp.Revise.Ops)
         }
         if (err) {
           log(err);
@@ -65,7 +68,7 @@ module onde {
     }
   }
 
-  function getOrigin() {
+  function getOrigin(): string {
     return location.protocol + "//" + location.hostname + (location.port ? (":" + location.port) : "");
   }
 

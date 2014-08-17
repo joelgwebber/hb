@@ -8,23 +8,23 @@
 //
 module ot {
 
-  // Op represents a single operation.
+  // All the 'any[]' types are of the form:
+  //   [5, -2, "text"] // retain 5, delete 2, insert "text"
+  //
+  // Each entry represents a single operation.
   // If op is number N it signifies:
-  // N > 0: Retain op bytes
-  // N < 0: Delete -op bytes
-  // B == 0: Noop
+  //   N > 0: Retain op bytes
+  //   N < 0: Delete -op bytes
+  //   B == 0: Noop
   // If op is string S of utf8len N:
-  // N > 0: Insert string S
-  // N == 0: Noop
-
-  // Ops is a sequence of operations:
-  // [5, -2, "text"] // retain 5, delete 2, insert "text"
+  //   N > 0: Insert string S
+  //   N == 0: Noop
 
   // javascript characters use UCS-2 encoding. we need utf-8 byte counts
-  export function utf8len(str) {
-    var i, c, n = 0;
-    for (i = 0; i < str.length; i++) {
-      c = str.charCodeAt(i);
+  export function utf8len(str: string): number {
+    var n = 0;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
       if (c > 0x10000) n += 4;
       else if (c > 0x800) n += 3;
       else if (c > 0x80) n += 2;
@@ -34,7 +34,7 @@ module ot {
   }
 
   // Count returns the number of retained, deleted and inserted bytes.
-  export function count(ops) { // returns [ret, del, ins]
+  export function count(ops: any[]): number[] { // returns [ret, del, ins]
     var ret = 0, del = 0, ins = 0;
     for (var i = 0; i < ops.length; i++) {
       var op = ops[i];
@@ -50,7 +50,7 @@ module ot {
   }
 
   // Merge attempts to merge consecutive operations the sequence.
-  export function merge(ops) { // returns ops
+  export function merge(ops: any[]): any[] {
     var lastop = 0;
     var res = [];
     for (var i = 0; i < ops.length; i++) {
@@ -71,16 +71,15 @@ module ot {
   }
 
   // Compose returns an operation sequence composed from the consecutive ops a and b.
-  // An error is returned if the composition failed.
-  export function compose(a, b) { // returns [ab, err]
+  export function compose(a: any[], b: any[]): any[] {
     if (!a || !b) {
-      return [null, "Compose requires nonempty ops."];
+      throw "Compose requires nonempty ops.";
     }
     var acount = count(a), bcount = count(b);
     if (acount[0] + acount[2] != bcount[0] + bcount[1]) {
-      return [null, "Compose requires consecutive ops."];
+      throw "Compose requires consecutive ops.";
     }
-    var res = [], err = null;
+    var res = [];
     var ia = 0, ib = 0;
     var oa = a[ia++], ob = b[ib++];
     while (!!oa || !!ob) {
@@ -97,7 +96,7 @@ module ot {
         continue;
       }
       if (!oa || !ob || tb != "number") {
-        return [null, "Compose encountered a short operation sequence."];
+        throw "Compose encountered a short operation sequence.";
       }
       var od;
       if (ta == tb && oa > 0 && ob > 0) { // both retain
@@ -158,23 +157,22 @@ module ot {
           ob = b[ib++];
         }
       } else {
-        alert("This should never have happened.");
+        throw "This should never have happened.";
       }
     }
-    return [merge(res), err];
+    return merge(res);
   }
 
   // Transform returns two operation sequences derived from the concurrent ops a and b.
-  // An error is returned if the transformation failed.
-  export function transform(a, b) { // returns [a1, b1, err]
+  export function transform(a: any[], b: any[]): any[] { // returns [a1, b1]
     if (!a || !b) {
-      return [a, b, null];
+      return [a, b];
     }
     var acount = count(a), bcount = count(b);
     if (acount[0] + acount[1] != bcount[0] + bcount[1]) {
-      return [null, null, "Transform requires concurrent ops."];
+      throw "Transform requires concurrent ops.";
     }
-    var a1 = [], b1 = [], err = null;
+    var a1 = [], b1 = [];
     var ia = 0, ib = 0;
     var oa = a[ia++], ob = b[ib++];
     while (!!oa || !!ob) {
@@ -193,7 +191,7 @@ module ot {
         continue;
       }
       if (!oa || !ob || ta != "number" || tb != ta) {
-        return [null, null, "Compose encountered a short operation sequence."];
+        throw "Compose encountered a short operation sequence.";
       }
       var od, om;
       if (oa > 0 && ob > 0) { // both retain
@@ -258,9 +256,9 @@ module ot {
         }
         b1.push(om);
       } else {
-        return [null, null, "Transform failed with incompatible operation sequences."];
+        throw "Transform failed with incompatible operation sequences.";
       }
     }
-    return [merge(a1), merge(b1), err];
+    return [merge(a1), merge(b1)];
   }
 }

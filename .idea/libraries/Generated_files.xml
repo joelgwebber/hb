@@ -1,0 +1,18 @@
+<component name="libraryTable">
+  <library name="Generated files" type="javaScript">
+    <properties>
+      <sourceFilesUrls>
+        <item url="file://$PROJECT_DIR$/ts/ot.js" />
+        <item url="file://$PROJECT_DIR$/ts/onde.js" />
+        <item url="file://$PROJECT_DIR$/pub/onde.main.js" />
+      </sourceFilesUrls>
+    </properties>
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/ts/ot.js" />
+      <root url="file://$PROJECT_DIR$/ts/onde.js" />
+      <root url="file://$PROJECT_DIR$/pub/onde.main.js" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

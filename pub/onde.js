@@ -1,3 +1,9 @@
+var onde;
+(function (onde) {
+    onde.MsgLogin = "login";
+    onde.MsgSubscribe = "subscribe";
+    onde.MsgRevise = "revise";
+})(onde || (onde = {}));
 // Adapted to Typescript from original ot.js source:
 //
 // Copyright 2013 Martin Schnabel. All rights reserved.
@@ -8,21 +14,22 @@
 //
 var ot;
 (function (ot) {
-    // Op represents a single operation.
+    // All the 'any[]' types are of the form:
+    //   [5, -2, "text"] // retain 5, delete 2, insert "text"
+    //
+    // Each entry represents a single operation.
     // If op is number N it signifies:
-    // N > 0: Retain op bytes
-    // N < 0: Delete -op bytes
-    // B == 0: Noop
+    //   N > 0: Retain op bytes
+    //   N < 0: Delete -op bytes
+    //   B == 0: Noop
     // If op is string S of utf8len N:
-    // N > 0: Insert string S
-    // N == 0: Noop
-    // Ops is a sequence of operations:
-    // [5, -2, "text"] // retain 5, delete 2, insert "text"
+    //   N > 0: Insert string S
+    //   N == 0: Noop
     // javascript characters use UCS-2 encoding. we need utf-8 byte counts
     function utf8len(str) {
-        var i, c, n = 0;
-        for (i = 0; i < str.length; i++) {
-            c = str.charCodeAt(i);
+        var n = 0;
+        for (var i = 0; i < str.length; i++) {
+            var c = str.charCodeAt(i);
             if (c > 0x10000)
                 n += 4;
 else if (c > 0x800)
@@ -74,16 +81,15 @@ else
     ot.merge = merge;
 
     // Compose returns an operation sequence composed from the consecutive ops a and b.
-    // An error is returned if the composition failed.
     function compose(a, b) {
         if (!a || !b) {
-            return [null, "Compose requires nonempty ops."];
+            throw "Compose requires nonempty ops.";
         }
         var acount = count(a), bcount = count(b);
         if (acount[0] + acount[2] != bcount[0] + bcount[1]) {
-            return [null, "Compose requires consecutive ops."];
+            throw "Compose requires consecutive ops.";
         }
-        var res = [], err = null;
+        var res = [];
         var ia = 0, ib = 0;
         var oa = a[ia++], ob = b[ib++];
         while (!!oa || !!ob) {
@@ -100,7 +106,7 @@ else
                 continue;
             }
             if (!oa || !ob || tb != "number") {
-                return [null, "Compose encountered a short operation sequence."];
+                throw "Compose encountered a short operation sequence.";
             }
             var od;
             if (ta == tb && oa > 0 && ob > 0) {
@@ -161,24 +167,23 @@ else
                     ob = b[ib++];
                 }
             } else {
-                alert("This should never have happened.");
+                throw "This should never have happened.";
             }
         }
-        return [merge(res), err];
+        return merge(res);
     }
     ot.compose = compose;
 
     // Transform returns two operation sequences derived from the concurrent ops a and b.
-    // An error is returned if the transformation failed.
     function transform(a, b) {
         if (!a || !b) {
-            return [a, b, null];
+            return [a, b];
         }
         var acount = count(a), bcount = count(b);
         if (acount[0] + acount[1] != bcount[0] + bcount[1]) {
-            return [null, null, "Transform requires concurrent ops."];
+            throw "Transform requires concurrent ops.";
         }
-        var a1 = [], b1 = [], err = null;
+        var a1 = [], b1 = [];
         var ia = 0, ib = 0;
         var oa = a[ia++], ob = b[ib++];
         while (!!oa || !!ob) {
@@ -197,7 +202,7 @@ else
                 continue;
             }
             if (!oa || !ob || ta != "number" || tb != ta) {
-                return [null, null, "Compose encountered a short operation sequence."];
+                throw "Compose encountered a short operation sequence.";
             }
             var od, om;
             if (oa > 0 && ob > 0) {
@@ -262,10 +267,10 @@ else
                 }
                 b1.push(om);
             } else {
-                return [null, null, "Transform failed with incompatible operation sequences."];
+                throw "Transform failed with incompatible operation sequences.";
             }
         }
-        return [merge(a1), merge(b1), err];
+        return [merge(a1), merge(b1)];
     }
     ot.transform = transform;
 })(ot || (ot = {}));
@@ -275,13 +280,14 @@ var onde;
     var range = ace.require('ace/range');
 
     function utf8OffsetToPos(lines, off, startrow) {
-        if (!startrow)
+        if (!startrow) {
             startrow = 0;
-        var i, line, j, c, lastRow = lines.length;
-        for (i = startrow; i < lastRow; i++) {
-            line = lines[i];
-            for (j = 0; off > 0 && j < line.length; j++) {
-                c = line.charCodeAt(j);
+        }
+        var lastRow = lines.length;
+        for (var i = startrow; i < lastRow; i++) {
+            var line = lines[i];
+            for (var j = 0; off > 0 && j < line.length; j++) {
+                var c = line.charCodeAt(j);
                 if (c > 0x10000)
                     off -= 4;
 else if (c > 0x800)
@@ -299,10 +305,10 @@ else
 
     function posToRestIndex(lines, pos) {
         var start = 0, last = 0;
-        var i, c, lastRow = lines.length;
+        var lastRow = lines.length;
         var startRow = Math.min(pos.row, lastRow);
-        for (i = 0; i < lastRow; i++) {
-            c = ot.utf8len(lines[i]);
+        for (var i = 0; i < lastRow; i++) {
+            var c = ot.utf8len(lines[i]);
             last += c;
             if (i < startRow) {
                 start += c;
@@ -313,12 +319,9 @@ else
         return { start: start + startRow, last: last + i - 1 };
     }
 
-    function joinLines(lines) {
-        var res = "";
-        for (var i = 0; i < lines.length; i++) {
-            res += lines[i] + "\n";
-        }
-        return res;
+    function documentLines(acedoc) {
+        // HACK: Reach in and grab $lines private, because it's a hell of a lot more efficient.
+        return acedoc['$lines'] || acedoc.getAllLines();
     }
 
     function deltaToOps(lines, delta) {
@@ -339,32 +342,35 @@ else
                 idxr.last -= ot.utf8len(delta.text);
                 break;
             case "insertLines":
-                var text = joinLines(delta.lines);
+                var text = delta.lines.join("\n");
                 ops.push(text);
                 idxr.last -= ot.utf8len(text);
                 break;
             default:
                 return [];
         }
-        if (idxr.start)
+        if (idxr.start) {
             ops.unshift(idxr.start);
-        if (idxr.last - idxr.start > 0)
+        }
+        if (idxr.last - idxr.start > 0) {
             ops.push(idxr.last - idxr.start);
+        }
         return ops;
     }
 
     function applyOps(acedoc, ops) {
-        var lines = acedoc.$lines || acedoc.getAllLines();
+        var lines = documentLines(acedoc);
         var count = ot.count(ops);
         var index = 0, pos = { row: 0, column: 0 }, op;
         var idxr = posToRestIndex(lines, pos);
         if (count[0] + count[1] != idxr.last) {
-            return "The base length must be equal to the document length";
+            throw "The base length must be equal to the document length";
         }
         var cache = { row: 0, at: 0 };
         for (var i = 0; i < ops.length; i++) {
-            if (!(op = ops[i]))
+            if (!(op = ops[i])) {
                 continue;
+            }
             if (typeof op == "string") {
                 pos = utf8OffsetToPos(lines, index - cache.at, cache.row);
                 cache = { row: pos.row, at: index - pos.column };
@@ -379,19 +385,19 @@ else
                 acedoc.remove(new range.Range(pos.row, pos.column, end.row, end.column));
             }
         }
-        return null;
     }
 
-    var Doc = (function () {
-        function Doc(elem, rev, text, opsHandler) {
+    var Editor = (function () {
+        function Editor(elem, rev, text, opsHandler) {
             var _this = this;
             this.rev = rev;
             this.opsHandler = opsHandler;
             this.status = "";
-            this.wait = null;
             this.merge = false;
+            this.wait = null;
             this.buf = null;
             elem.textContent = text;
+
             this.editor = ace.edit(elem);
             this.session = this.editor.getSession();
             this.acedoc = this.session.getDocument();
@@ -404,13 +410,12 @@ else
                     return;
                 }
 
-                // HACK: Reach in and grab $lines private, because it's a hell of a lot more efficient.
-                var lines = _this.acedoc['$lines'] || _this.acedoc.getAllLines();
-                var ops = deltaToOps(lines, e.data);
+                var delta = e.data;
+                var ops = deltaToOps(documentLines(_this.acedoc), delta);
                 _this.onChange(ops);
             });
         }
-        Doc.prototype.recvOps = function (ops) {
+        Editor.prototype.recvOps = function (ops) {
             var res = null;
             if (this.wait !== null) {
                 res = ot.transform(ops, this.wait);
@@ -429,16 +434,13 @@ else
                 this.buf = res[1];
             }
             this.merge = true;
-            var err = applyOps(this.acedoc, ops);
+            applyOps(this.acedoc, ops);
             this.merge = false;
-            if (err === null) {
-                ++this.rev;
-                this.status = "received";
-            }
-            return err;
+            ++this.rev;
+            this.status = "received";
         };
 
-        Doc.prototype.ackOps = function (ops) {
+        Editor.prototype.ackOps = function (ops) {
             var rev = this.rev + 1;
             if (this.buf !== null) {
                 this.wait = this.buf;
@@ -450,18 +452,14 @@ else
                 this.wait = null;
                 this.rev = rev;
                 this.status = "";
-            } else {
-                return "no pending operation";
             }
-            return null;
         };
 
-        Doc.prototype.onChange = function (ops) {
+        Editor.prototype.onChange = function (ops) {
             if (this.buf !== null) {
                 var res = ot.compose(this.buf, ops);
                 if (res[1] !== null) {
-                    console.log("compose error", res);
-                    return;
+                    throw "compose error";
                 }
                 this.buf = res[0];
             } else if (this.wait !== null) {
@@ -472,10 +470,11 @@ else
                 this.opsHandler(this.rev, ops);
             }
         };
-        return Doc;
+        return Editor;
     })();
-    onde.Doc = Doc;
+    onde.Editor = Editor;
 })(onde || (onde = {}));
+/// <reference path="api.ts" />
 /// <reference path="editor.ts" />
 /// <reference path="lib/ace.d.ts" />
 /// <reference path="lib/sockjs.d.ts" />
@@ -483,6 +482,11 @@ var onde;
 (function (onde) {
     var logElem = document.getElementById("log");
     var statusElem = document.getElementById("status");
+    var editElem = document.getElementById("doc");
+
+    var editor;
+    var sock;
+    var userId;
 
     function log(msg) {
         logElem.value += msg + "\n";
@@ -491,11 +495,6 @@ var onde;
     function setStatus(msg) {
         statusElem.textContent = msg;
     }
-
-    var docElem = document.getElementById("doc");
-    var doc;
-    var sock;
-    var userId;
 
     function onOpen() {
         log("connection open");
@@ -510,31 +509,33 @@ var onde;
     function onMessage(e) {
         var rsp = JSON.parse(e.data);
         switch (rsp.Type) {
-            case "login":
+            case onde.MsgLogin:
                 userId = rsp.Login.UserId;
                 log("user id: " + userId);
                 setStatus("logged in");
-                sock.send(JSON.stringify({
-                    Type: "subscribe",
+                var req = {
+                    Type: onde.MsgSubscribe,
                     Subscribe: { DocId: "wut" }
-                }));
+                };
+                sock.send(JSON.stringify(req));
                 break;
 
-            case "subscribe":
-                doc = new onde.Doc(docElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
-                    sock.send(JSON.stringify({
-                        Type: "revise",
+            case onde.MsgSubscribe:
+                editor = new onde.Editor(editElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
+                    var req = {
+                        Type: onde.MsgRevise,
                         Revise: { UserId: userId, Rev: rev, Ops: ops }
-                    }));
+                    };
+                    sock.send(JSON.stringify(req));
                 });
                 break;
 
-            case "revise":
+            case onde.MsgRevise:
                 var err;
                 if (rsp.Revise.UserId == userId) {
-                    err = doc.ackOps(rsp.Revise.Ops);
+                    err = editor.ackOps(rsp.Revise.Ops);
                 } else {
-                    err = doc.recvOps(rsp.Revise.Ops);
+                    err = editor.recvOps(rsp.Revise.Ops);
                 }
                 if (err) {
                     log(err);

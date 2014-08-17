@@ -3,7 +3,7 @@
 // Definitions by: Diullei Gomes <https://github.com/Diullei>
 // Definitions: https://github.com/borisyankov/DefinitelyTyped
 
-declare module AceAjax {
+declare module Ace {
 
     export interface Delta {
         action: string;
@@ -2934,4 +2934,4 @@ declare module AceAjax {
     }
 }
 
-declare var ace: AceAjax.Ace;
+declare var ace: Ace.Ace;
