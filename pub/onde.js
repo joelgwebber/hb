@@ -3,6 +3,7 @@ var onde;
     onde.MsgLogin = "login";
     onde.MsgSubscribe = "subscribe";
     onde.MsgRevise = "revise";
+    onde.MsgError = "error";
 })(onde || (onde = {}));
 // Adapted to Typescript from original ot.js source:
 //
@@ -488,7 +489,7 @@ var onde;
 
     var editor;
     var sock;
-    var userId;
+    var connId;
 
     function log(msg) {
         logElem.value += msg + "\n";
@@ -501,6 +502,7 @@ var onde;
     function onOpen() {
         log("connection open");
         setStatus("connected");
+        login("joel");
     }
 
     function onClose() {
@@ -512,8 +514,8 @@ var onde;
         var rsp = JSON.parse(e.data);
         switch (rsp.Type) {
             case onde.MsgLogin:
-                userId = rsp.Login.UserId;
-                log("user id: " + userId);
+                connId = rsp.Login.ConnId;
+                log("conn id: " + connId);
                 setStatus("logged in");
                 var req = {
                     Type: onde.MsgSubscribe,
@@ -526,7 +528,7 @@ var onde;
                 editor = new onde.Editor(editElem, rsp.Subscribe.DocId, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (docId, rev, ops) {
                     var req = {
                         Type: onde.MsgRevise,
-                        Revise: { UserId: userId, DocId: docId, Rev: rev, Ops: ops }
+                        Revise: { ConnId: connId, DocId: docId, Rev: rev, Ops: ops }
                     };
                     sock.send(JSON.stringify(req));
                 });
@@ -534,7 +536,7 @@ var onde;
 
             case onde.MsgRevise:
                 var err;
-                if (rsp.Revise.UserId == userId) {
+                if (rsp.Revise.ConnId == connId) {
                     err = editor.ackOps(rsp.Revise.Ops);
                 } else {
                     err = editor.recvOps(rsp.Revise.Ops);
@@ -543,7 +545,19 @@ var onde;
                     log(err);
                 }
                 break;
+
+            case onde.MsgError:
+                log(rsp.Error.Msg);
+                break;
         }
+    }
+
+    function login(userId) {
+        var req = {
+            Type: onde.MsgLogin,
+            Login: { UserId: userId }
+        };
+        sock.send(JSON.stringify(req));
     }
 
     function getOrigin() {

@@ -3,18 +3,17 @@ module onde {
   export var MsgLogin = "login";
   export var MsgSubscribe = "subscribe";
   export var MsgRevise = "revise";
+  export var MsgError = "error";
 
   export interface Req {
     Type: string;
+    Login?: LoginReq;
     Revise?: ReviseReq;
     Subscribe?: SubscribeReq;
   }
 
-  export interface Rsp {
-    Type: string;
-    Login?: LoginRsp;
-    Subscribe?: SubscribeRsp;
-    Revise?: ReviseRsp;
+  export interface LoginReq {
+    UserId: string;
   }
 
   export interface SubscribeReq {
@@ -22,14 +21,23 @@ module onde {
   }
 
   export interface ReviseReq {
-    UserId: string;
+    ConnId: string;
     DocId: string;
     Rev: number;
     Ops: any[];
   }
 
+  export interface Rsp {
+    Type: string;
+    Login?: LoginRsp;
+    Subscribe?: SubscribeRsp;
+    Revise?: ReviseRsp;
+    Error?: ErrorRsp;
+  }
+
   export interface LoginRsp {
     UserId: string;
+    ConnId: string;
   }
 
   export interface SubscribeRsp {
@@ -39,8 +47,12 @@ module onde {
   }
 
   export interface ReviseRsp {
-    UserId: string;
+    ConnId: string;
     Rev:    number;
     Ops:    any[];
+  }
+
+  export interface ErrorRsp {
+    Msg: string;
   }
 }

@@ -11,19 +11,18 @@ const (
 	MsgLogin     = "login"
 	MsgSubscribe = "subscribe"
 	MsgRevise    = "revise"
+	MsgError     = "error"
 )
 
 type Req struct {
 	Type      string
+	Login     *LoginReq
 	Revise    *ReviseReq
 	Subscribe *SubscribeReq
 }
 
-type Rsp struct {
-	Type      string
-	Login     *LoginRsp
-	Subscribe *SubscribeRsp
-	Revise    *ReviseRsp
+type LoginReq struct {
+	UserId string
 }
 
 type SubscribeReq struct {
@@ -31,17 +30,27 @@ type SubscribeReq struct {
 }
 
 type ReviseReq struct {
-	DocId string
-	Rev   int
-	Ops   ot.Ops
+	ConnId string
+	DocId  string
+	Rev    int
+	Ops    ot.Ops
+}
+
+type Rsp struct {
+	Type      string
+	Login     *LoginRsp
+	Subscribe *SubscribeRsp
+	Revise    *ReviseRsp
+	Error     *ErrorRsp
 }
 
 type LoginRsp struct {
 	UserId string
+	ConnId string
 }
 
-func (rsp LoginRsp) Send(session sockjs.Session) error {
-	return sendRsp(session, &Rsp{Type: MsgLogin, Login: &rsp})
+func (rsp LoginRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgLogin, Login: &rsp})
 }
 
 type SubscribeRsp struct {
@@ -50,24 +59,32 @@ type SubscribeRsp struct {
 	Doc   string
 }
 
-func (rsp SubscribeRsp) Send(session sockjs.Session) error {
-	return sendRsp(session, &Rsp{Type: MsgSubscribe, Subscribe: &rsp})
+func (rsp SubscribeRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgSubscribe, Subscribe: &rsp})
 }
 
 type ReviseRsp struct {
-	UserId string
+	ConnId string
 	Rev    int
 	Ops    ot.Ops
 }
 
-func (rsp ReviseRsp) Send(session sockjs.Session) error {
-	return sendRsp(session, &Rsp{Type: MsgRevise, Revise: &rsp})
+func (rsp ReviseRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgRevise, Revise: &rsp})
 }
 
-func sendRsp(session sockjs.Session, rsp *Rsp) error {
+type ErrorRsp struct {
+	Msg string
+}
+
+func (rsp ErrorRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgError, Error: &rsp})
+}
+
+func sendRsp(sock sockjs.Session, rsp *Rsp) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(rsp); err != nil {
 		return err
 	}
-	return session.Send(buf.String())
+	return sock.Send(buf.String())
 }

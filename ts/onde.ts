@@ -10,7 +10,7 @@ module onde {
 
   var editor: Editor;
   var sock: SockJS;
-  var userId: string;
+  var connId: string;
 
   function log(msg: string) {
     logElem.value += msg + "\n";
@@ -23,6 +23,7 @@ module onde {
   function onOpen() {
     log("connection open");
     setStatus("connected");
+    login("joel");
   }
 
   function onClose() {
@@ -34,8 +35,8 @@ module onde {
     var rsp = <Rsp>JSON.parse(e.data);
     switch (rsp.Type) {
       case MsgLogin:
-        userId = rsp.Login.UserId;
-        log("user id: " + userId);
+        connId = rsp.Login.ConnId;
+        log("conn id: " + connId);
         setStatus("logged in");
         var req: Req = {
           Type: MsgSubscribe,
@@ -48,7 +49,7 @@ module onde {
         editor = new Editor(editElem, rsp.Subscribe.DocId, rsp.Subscribe.Rev, rsp.Subscribe.Doc, (docId, rev, ops) => {
           var req: Req = {
             Type: MsgRevise,
-            Revise: { UserId: userId, DocId: docId, Rev: rev, Ops: ops }
+            Revise: { ConnId: connId, DocId: docId, Rev: rev, Ops: ops }
           };
           sock.send(JSON.stringify(req));
         });
@@ -56,7 +57,7 @@ module onde {
 
       case MsgRevise:
         var err;
-        if (rsp.Revise.UserId == userId) {
+        if (rsp.Revise.ConnId == connId) {
           err = editor.ackOps(rsp.Revise.Ops);
         } else {
           err = editor.recvOps(rsp.Revise.Ops)
@@ -65,7 +66,19 @@ module onde {
           log(err);
         }
         break;
+
+      case MsgError:
+        log(rsp.Error.Msg);
+        break;
     }
+  }
+
+  function login(userId: string) {
+    var req: Req = {
+      Type: MsgLogin,
+      Login: { UserId: userId }
+    };
+    sock.send(JSON.stringify(req));
   }
 
   function getOrigin(): string {
