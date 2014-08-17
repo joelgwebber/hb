@@ -342,7 +342,8 @@ else
                 idxr.last -= ot.utf8len(delta.text);
                 break;
             case "insertLines":
-                var text = delta.lines.join("\n");
+                var lines = delta.lines;
+                var text = lines.join("\n");
                 ops.push(text);
                 idxr.last -= ot.utf8len(text);
                 break;
@@ -388,8 +389,9 @@ else
     }
 
     var Editor = (function () {
-        function Editor(elem, rev, text, opsHandler) {
+        function Editor(elem, docId, rev, text, opsHandler) {
             var _this = this;
+            this.docId = docId;
             this.rev = rev;
             this.opsHandler = opsHandler;
             this.status = "";
@@ -447,7 +449,7 @@ else
                 this.buf = null;
                 this.rev = rev;
                 this.status = "waiting";
-                this.opsHandler(rev, this.wait);
+                this.opsHandler(this.docId, rev, this.wait);
             } else if (this.wait !== null) {
                 this.wait = null;
                 this.rev = rev;
@@ -467,7 +469,7 @@ else
             } else {
                 this.wait = ops;
                 this.status = "waiting";
-                this.opsHandler(this.rev, ops);
+                this.opsHandler(this.docId, this.rev, ops);
             }
         };
         return Editor;
@@ -515,16 +517,16 @@ var onde;
                 setStatus("logged in");
                 var req = {
                     Type: onde.MsgSubscribe,
-                    Subscribe: { DocId: "wut" }
+                    Subscribe: { DocId: "foo" }
                 };
                 sock.send(JSON.stringify(req));
                 break;
 
             case onde.MsgSubscribe:
-                editor = new onde.Editor(editElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
+                editor = new onde.Editor(editElem, rsp.Subscribe.DocId, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (docId, rev, ops) {
                     var req = {
                         Type: onde.MsgRevise,
-                        Revise: { UserId: userId, Rev: rev, Ops: ops }
+                        Revise: { UserId: userId, DocId: docId, Rev: rev, Ops: ops }
                     };
                     sock.send(JSON.stringify(req));
                 });

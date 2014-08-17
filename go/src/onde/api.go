@@ -31,8 +31,9 @@ type SubscribeReq struct {
 }
 
 type ReviseReq struct {
-	Rev int
-	Ops ot.Ops
+	DocId string
+	Rev   int
+	Ops   ot.Ops
 }
 
 type LoginRsp struct {

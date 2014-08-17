@@ -22,6 +22,8 @@ module onde {
   }
 
   export interface ReviseReq {
+    UserId: string;
+    DocId: string;
     Rev: number;
     Ops: any[];
   }

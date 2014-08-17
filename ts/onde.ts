@@ -39,16 +39,16 @@ module onde {
         setStatus("logged in");
         var req: Req = {
           Type: MsgSubscribe,
-          Subscribe: { DocId: "wut" }
+          Subscribe: { DocId: "foo" }
         };
         sock.send(JSON.stringify(req));
         break;
 
       case MsgSubscribe:
-        editor = new Editor(editElem, rsp.Subscribe.Rev, rsp.Subscribe.Doc, function (rev, ops) {
+        editor = new Editor(editElem, rsp.Subscribe.DocId, rsp.Subscribe.Rev, rsp.Subscribe.Doc, (docId, rev, ops) => {
           var req: Req = {
             Type: MsgRevise,
-            Revise: { UserId: userId, Rev: rev, Ops: ops }
+            Revise: { UserId: userId, DocId: docId, Rev: rev, Ops: ops }
           };
           sock.send(JSON.stringify(req));
         });

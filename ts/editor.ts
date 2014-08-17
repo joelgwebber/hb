@@ -62,7 +62,8 @@ module onde {
         idxr.last -= ot.utf8len(delta.text);
         break;
       case "insertLines":
-        var text = delta.lines.join("\n");
+        var lines = delta.lines;
+        var text = lines.join("\n");
         ops.push(text);
         idxr.last -= ot.utf8len(text);
         break;
@@ -117,7 +118,7 @@ module onde {
     private session: Ace.IEditSession;
     private acedoc: Ace.Document;
 
-    constructor(elem: HTMLElement, private rev: number, text: string, private opsHandler: (rev: number, ops: any[]) => void) {
+    constructor(elem: HTMLElement, private docId: string, private rev: number, text: string, private opsHandler: (docId: string, rev: number, ops: any[]) => void) {
       elem.textContent = text;
 
       this.editor = ace.edit(elem);
@@ -170,7 +171,7 @@ module onde {
         this.buf = null;
         this.rev = rev;
         this.status = "waiting";
-        this.opsHandler(rev, this.wait);
+        this.opsHandler(this.docId, rev, this.wait);
       } else if (this.wait !== null) {
         this.wait = null;
         this.rev = rev;
@@ -190,7 +191,7 @@ module onde {
       } else {
         this.wait = ops;
         this.status = "waiting";
-        this.opsHandler(this.rev, ops);
+        this.opsHandler(this.docId, this.rev, ops);
       }
     }
   }

@@ -8,11 +8,13 @@ import (
 	"strings"
 )
 
-var srv *ot.Server
-var subs = make(map[string]sockjs.Session)
+type Document struct {
+	srv  *ot.Server
+	subs map[string]sockjs.Session
+}
 
-func broadcast(userId string, rev int, ops ot.Ops) {
-	for recvId, session := range subs {
+func (doc *Document) broadcast(userId string, rev int, ops ot.Ops) {
+	for recvId, session := range doc.subs {
 		if recvId != userId {
 			ReviseRsp{
 				UserId: userId,
@@ -23,10 +25,11 @@ func broadcast(userId string, rev int, ops ot.Ops) {
 	}
 }
 
+var docs = make(map[string]*Document)
+
 func SockHandler(session sockjs.Session) {
 	log.Println("new connection: %s", session.ID())
 
-	subs[session.ID()] = session
 	LoginRsp{UserId: session.ID()}.Send(session)
 
 	var err error
@@ -42,14 +45,17 @@ func SockHandler(session sockjs.Session) {
 
 			switch req.Type {
 			case MsgSubscribe:
+				doc := docs[req.Subscribe.DocId]
+				doc.subs[session.ID()] = session
 				SubscribeRsp{
 					DocId: req.Subscribe.DocId,
-					Rev:   srv.Rev(),
-					Doc:   string(*srv.Doc),
+					Rev:   doc.srv.Rev(),
+					Doc:   string(*doc.srv.Doc),
 				}.Send(session)
 
 			case MsgRevise:
-				outops, err := srv.Recv(req.Revise.Rev, req.Revise.Ops)
+				doc := docs[req.Revise.DocId]
+				outops, err := doc.srv.Recv(req.Revise.Rev, req.Revise.Ops)
 				if err != nil {
 					log.Printf("error handling ops: %s", err)
 					break
@@ -60,7 +66,7 @@ func SockHandler(session sockjs.Session) {
 					Ops:    outops,
 				}.Send(session)
 
-				broadcast(session.ID(), srv.Rev(), outops)
+				doc.broadcast(session.ID(), doc.srv.Rev(), outops)
 			}
 
 			continue
@@ -71,9 +77,18 @@ func SockHandler(session sockjs.Session) {
 	log.Printf("lost connection %s: %s", session.ID(), err)
 }
 
-func init() {
-	doc := []byte("Here's a doc, yo")
-	srv = &ot.Server{
-		Doc: (*ot.Doc)(&doc),
+func makeDoc(docId, text string) {
+	bytes := []byte(text)
+	doc := &Document{
+		srv: &ot.Server{
+			Doc: (*ot.Doc)(&bytes),
+		},
+		subs: make(map[string]sockjs.Session),
 	}
+	docs[docId] = doc
+}
+
+func init() {
+	makeDoc("foo", "Here's the foo doc.")
+	makeDoc("bar", "Here's the bar doc.")
 }
