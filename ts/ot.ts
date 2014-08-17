@@ -1,29 +1,29 @@
-/*
- Copyright 2013 Martin Schnabel. All rights reserved.
- Use of this source code is governed by a BSD-style
- license that can be found in the LICENSE file.
+// Adapted to Typescript from original ot.js source:
+//
+// Copyright 2013 Martin Schnabel. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+// Package ot is a simple version of the operation transformation library:
+// ot.js (c) 2012-2013 Tim Baumann http://timbaumann.info MIT licensed.
+//
+module ot {
 
- Package sot is a simple version of the operation transformation library:
- ot.js (c) 2012-2013 Tim Baumann http://timbaumann.info MIT licensed.
- */
-var sot = (function() {
+  // Op represents a single operation.
+  // If op is number N it signifies:
+  // N > 0: Retain op bytes
+  // N < 0: Delete -op bytes
+  // B == 0: Noop
+  // If op is string S of utf8len N:
+  // N > 0: Insert string S
+  // N == 0: Noop
 
-// Op represents a single operation.
-// If op is number N it signifies:
-// N > 0: Retain op bytes
-// N < 0: Delete -op bytes
-// B == 0: Noop
-// If op is string S of utf8len N:
-// N > 0: Insert string S
-// N == 0: Noop
+  // Ops is a sequence of operations:
+  // [5, -2, "text"] // retain 5, delete 2, insert "text"
 
-// Ops is a sequence of operations:
-// [5, -2, "text"] // retain 5, delete 2, insert "text"
-
-// javascript characters use UCS-2 encoding. we need utf-8 byte counts
-  function utf8len(str) {
+  // javascript characters use UCS-2 encoding. we need utf-8 byte counts
+  export function utf8len(str) {
     var i, c, n = 0;
-    for (i=0; i<str.length; i++) {
+    for (i = 0; i < str.length; i++) {
       c = str.charCodeAt(i);
       if (c > 0x10000) n += 4;
       else if (c > 0x800) n += 3;
@@ -33,10 +33,10 @@ var sot = (function() {
     return n;
   }
 
-// Count returns the number of retained, deleted and inserted bytes.
-  function count(ops) { // returns [ret, del, ins]
+  // Count returns the number of retained, deleted and inserted bytes.
+  export function count(ops) { // returns [ret, del, ins]
     var ret = 0, del = 0, ins = 0;
-    for (var i=0; i < ops.length; i++) {
+    for (var i = 0; i < ops.length; i++) {
       var op = ops[i];
       if (typeof op == "string") {
         ins += utf8len(op);
@@ -49,11 +49,11 @@ var sot = (function() {
     return [ret, del, ins];
   }
 
-// Merge attempts to merge consecutive operations the sequence.
-  function merge(ops) { // returns ops
+  // Merge attempts to merge consecutive operations the sequence.
+  export function merge(ops) { // returns ops
     var lastop = 0;
     var res = [];
-    for (var i=0; i < ops.length; i++) {
+    for (var i = 0; i < ops.length; i++) {
       var op = ops[i];
       if (!op) continue;
       var type = typeof op;
@@ -61,23 +61,23 @@ var sot = (function() {
           type == "string" ||
           op > 0 && lastop > 0 ||
           op < 0 && lastop < 0)) {
-        res[res.length-1] = lastop+op;
+        res[res.length - 1] = lastop + op;
       } else {
         res.push(op);
       }
-      lastop = res[res.length-1];
+      lastop = res[res.length - 1];
     }
     return res;
   }
 
-// Compose returns an operation sequence composed from the consecutive ops a and b.
-// An error is returned if the composition failed.
-  function compose(a, b) { // returns [ab, err]
+  // Compose returns an operation sequence composed from the consecutive ops a and b.
+  // An error is returned if the composition failed.
+  export function compose(a, b) { // returns [ab, err]
     if (!a || !b) {
       return [null, "Compose requires nonempty ops."];
     }
     var acount = count(a), bcount = count(b);
-    if (acount[0]+acount[2] != bcount[0]+bcount[1]) {
+    if (acount[0] + acount[2] != bcount[0] + bcount[1]) {
       return [null, "Compose requires consecutive ops."];
     }
     var res = [], err = null;
@@ -150,7 +150,7 @@ var sot = (function() {
           ob = b[ib++];
         } else if (od < 0) {
           ob += oa;
-          res.push(oa*-1);
+          res.push(oa * -1);
           oa = a[ia++];
         } else {
           res.push(ob);
@@ -164,14 +164,14 @@ var sot = (function() {
     return [merge(res), err];
   }
 
-// Transform returns two operation sequences derived from the concurrent ops a and b.
-// An error is returned if the transformation failed.
-  function transform(a, b) { // returns [a1, b1, err]
+  // Transform returns two operation sequences derived from the concurrent ops a and b.
+  // An error is returned if the transformation failed.
+  export function transform(a, b) { // returns [a1, b1, err]
     if (!a || !b) {
       return [a, b, null];
     }
     var acount = count(a), bcount = count(b);
-    if (acount[0]+acount[1] != bcount[0]+bcount[1]) {
+    if (acount[0] + acount[1] != bcount[0] + bcount[1]) {
       return [null, null, "Transform requires concurrent ops."];
     }
     var a1 = [], b1 = [], err = null;
@@ -263,12 +263,4 @@ var sot = (function() {
     }
     return [merge(a1), merge(b1), err];
   }
-
-  return {
-    utf8len: utf8len,
-    count: count,
-    merge: merge,
-    compose: compose,
-    transform: transform,
-  };
-})();
+}
