@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Onde</title>
+  <style>
+    #doc {
+      width: 100%;
+      height: 256px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="doc"></div>
+
+  <div>
+    <div>Log</div>
+    <textarea cols=80 rows=20 id="log"></textarea>
+  </div>
+
+  <div> <span id="status">connecting...</span> </div>
+
+  <script src="lib/sockjs/sockjs-0.3.min.js"></script>
+  <script src="lib/ace/src-noconflict/ace.js"></script>
+  <script src="sot.js"></script>
+  <script src="onde.js"></script>
+</body>
+</html>
