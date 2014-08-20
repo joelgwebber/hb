@@ -1,6 +1,9 @@
 package onde
 
-import "onde/ot"
+import (
+	"onde/ot"
+	"onde/solr"
+)
 
 type Document struct {
 	id   string
@@ -8,17 +11,30 @@ type Document struct {
 	subs map[string]*Connection
 }
 
-func makeDoc(docId, text string) {
-	bytes := []byte(text)
+func GetDocument(docId string) (*Document, error) {
+	if doc, exists := docs[docId]; exists {
+		return doc, nil
+	}
+
+	solrDoc, err := solr.GetDoc("onde", docId)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes := []byte(*solrDoc.GetString("body"))
 	doc := &Document{
 		id:   docId,
 		srv:  &ot.Server{ Doc: (*ot.Doc)(&bytes) },
 		subs: make(map[string]*Connection),
 	}
 	docs[docId] = doc
+	return doc, nil
 }
 
 func (doc *Document) broadcast(connId string, rev int, ops ot.Ops) {
+	// TODO: Total hack to update storage. Do this less aggressively.
+	solr.UpdateDoc("onde", doc.id, string(*doc.srv.Doc), true)
+
 	for recvId, conn := range doc.subs {
 		if recvId != connId {
 			ReviseRsp{
@@ -53,9 +69,7 @@ func makeUser(id string) {
 var users = make(map[string]*User)
 
 func init() {
+	solr.EnsureCore("onde")
 	makeUser("joel")
 	makeUser("anais")
-
-	makeDoc("foo", "Here's the foo doc.")
-	makeDoc("bar", "Here's the bar doc.")
 }

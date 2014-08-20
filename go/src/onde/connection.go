@@ -45,7 +45,12 @@ func (conn *Connection) handleSubscribe(req *SubscribeReq) {
 		return
   }
 
-	doc := docs[req.DocId]
+	doc, err := GetDocument(req.DocId)
+	if err != nil {
+		ErrorRsp{ Msg: fmt.Sprintf("no such document: %s", req.DocId) }.Send(conn.sock)
+		return
+	}
+
 	conn.addSub(doc)
 	SubscribeRsp{
 		DocId: req.DocId,

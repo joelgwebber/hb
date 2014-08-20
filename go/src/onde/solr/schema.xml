@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<!--
+  Doc: http://wiki.apache.org/solr/SchemaXml
+-->
+<schema name="onde" version="1.0">
+  <uniqueKey>id</uniqueKey>
+  <solrQueryParser defaultOperator="AND"/>
+
+  <fields>
+    <field name="_version_" type="int64"/>
+    <field name="id" type="string"/>
+    <field name="body" type="text_general"/>
+    <dynamicField name="prop_*" type="string"/>
+  </fields>
+
+  <types>
+    <fieldtype name="string"    class="solr.StrField"           multiValued="false" indexed="true"  stored="true"   docValues="true"    sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true"/>
+    <fieldType name="date"      class="solr.TrieDateField"      multiValued="false" indexed="true"  stored="true"   docValues="true"    sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="6"/>
+    <fieldType name="bool"      class="solr.BoolField"          multiValued="false" indexed="true"  stored="true"   docValues="false"   sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true"/>
+    <fieldType name="int64"     class="solr.TrieLongField"      multiValued="false" indexed="true"  stored="true"   docValues="true"    sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="0"/>
+    <fieldType name="int32"     class="solr.TrieIntField"       multiValued="false" indexed="true"  stored="true"   docValues="true"    sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="0"/>
+    <fieldType name="float64"   class="solr.TrieDoubleField"    multiValued="false" indexed="true"  stored="true"   docValues="true"    sortMissingLast="true"  termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="4"/>
+
+    <!--
+        Basic text handling: tokenize on whitespace and typical human-language conventions, case-insensitive.
+        We do not omitNorms, because shorter matches really ought to score higher; this is useful in things like
+        autocomplete suggestions.
+    -->
+    <fieldType name="text_general" class="solr.TextField"       multiValued="false" indexed="true"  stored="true"   docValues="false"   sortMissingLast="true"  termVectors="false">
+      <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+      <analyzer type="query">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+    </fieldType>
+  </types>
+</schema>
