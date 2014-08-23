@@ -5,15 +5,21 @@ module onde {
   export var MsgSubscribeDoc = "subscribedoc";
   export var MsgUnsubscribeDoc = "unsubscribedoc";
   export var MsgRevise = "revise";
+  export var MsgSubscribeSearch = "subscribesearch";
+  export var MsgUnsubscribeSearch = "unsubscribesearch";
+  export var MsgSearchResults = "searchresults";
   export var MsgError = "error";
 
   // Requests.
   export interface Req {
     Type: string;
+
     Login?: LoginReq;
-    Revise?: ReviseReq;
     SubscribeDoc?: SubscribeDocReq;
     UnsubscribeDoc?: UnsubscribeDocReq;
+    Revise?: ReviseReq;
+    SubscribeSearch?: SubscribeSearchReq;
+    UnsubscribeSearch?: UnsubscribeSearchReq;
   }
 
   export interface LoginReq {
@@ -30,18 +36,32 @@ module onde {
 
   export interface ReviseReq {
     ConnId: string;
+    SubId: number;
     DocId: string;
     Rev: number;
     Ops: any[];
   }
 
+  export interface SubscribeSearchReq {
+    Query: string;
+  }
+
+  export interface UnsubscribeSearchReq {
+    Query: string;
+  }
+
   // Responses.
   export interface Rsp {
     Type: string;
+
     Login?: LoginRsp;
     SubscribeDoc?: SubscribeDocRsp;
     UnsubscribeDoc?: UnsubscribeDocRsp;
     Revise?: ReviseRsp;
+    SubscribeSearch?: SubscribeSearchRsp;
+    UnsubscribeSearch?: UnsubscribeSearchRsp;
+
+    SearchResults?: SearchResultsRsp;
     Error?: ErrorRsp;
   }
 
@@ -62,8 +82,28 @@ module onde {
 
   export interface ReviseRsp {
     ConnId: string;
+    SubId:  number;
+    DocId:  string;
     Rev:    number;
     Ops:    any[];
+  }
+
+  export interface SubscribeSearchRsp {
+    Query: string;
+  }
+
+  export interface UnsubscribeSearchRsp {
+    Query: string;
+  }
+
+  export interface SearchResultsRsp {
+    Total: number;
+    Resulsts: SearchResult[];
+  }
+
+  export interface SearchResult {
+    DocId: string;
+    Doc: string;
   }
 
   export interface ErrorRsp {

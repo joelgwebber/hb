@@ -5,6 +5,7 @@ import (
 	"io"
 	"encoding/json"
 	"strconv"
+	"errors"
 )
 
 type JsonObject map[string]interface{}
@@ -55,6 +56,15 @@ func ParseJson(r io.Reader) (JsonObject, error) {
 		return nil, err
 	}
 	return js, nil
+}
+
+func JsonFromInterface(val interface{}) (JsonObject, error) {
+	switch m := val.(type) {
+	case map[string]interface{}:
+		return JsonObject(m), nil
+	default:
+		return nil, errors.New("not a map[string]interface{}")
+	}
 }
 
 func (js JsonObject) get(key string) interface{} {

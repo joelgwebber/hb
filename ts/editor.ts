@@ -6,6 +6,7 @@
 //
 
 /// <reference path="ot.ts" />
+/// <reference path="lib/ace.d.ts" />
 
 module onde {
   var range = ace.require('ace/range');
@@ -152,8 +153,6 @@ module onde {
         }
 
         var delta = <Ace.Delta>e.data;
-        console.log(documentLines(this._acedoc));
-        console.log(delta);
         var ops = deltaToOps(documentLines(this._acedoc), delta);
         this.onChange(ops);
       });
@@ -204,7 +203,6 @@ module onde {
     }
 
     private onChange(ops: any[]) {
-      console.log(ops);
       if (this._buf !== null) {
         this._buf = ot.compose(this._buf, ops);
       } else if (this._wait !== null) {

@@ -89,19 +89,29 @@ func GetDoc(orgId, key string) (JsonObject, error) {
 	if count != 1 {
 		return nil, errors.New("expected a single document")
 	}
-	return JsonObject(docs[0].(map[string]interface{})), nil
+	return docs[0], nil
 }
 
 // Gets one or more documents using the search handler.
-func GetDocs(orgId string, params url.Values) (total int, results []interface{}, err error) {
-	val, err := get(orgId, SolrSelectHandler, params)
+func GetDocs(orgId string, params url.Values) (total int, results []JsonObject, err error) {
+	var val JsonObject
+	val, err = get(orgId, SolrSelectHandler, params)
 	if err != nil {
-		return 0, nil, err
+		return
 	}
 
-	responseDocs := val.GetArray("response.docs")
-	numResponseDocs := len(responseDocs)
-	return numResponseDocs, responseDocs, nil
+	docs := val.GetArray("response.docs")
+	total = int(*val.GetNumber("response.numFound"))
+	_ = val.GetNumber("response.start") // TODO: Use this in paging.
+
+	results = make([]JsonObject, len(docs))
+	for i, doc := range docs {
+		results[i], err = JsonFromInterface(doc)
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 func UpdateDoc(orgId, docId, body string, forceCommit bool) error {

@@ -5,7 +5,220 @@ var onde;
     onde.MsgSubscribeDoc = "subscribedoc";
     onde.MsgUnsubscribeDoc = "unsubscribedoc";
     onde.MsgRevise = "revise";
+    onde.MsgSubscribeSearch = "subscribesearch";
+    onde.MsgUnsubscribeSearch = "unsubscribesearch";
+    onde.MsgSearchResults = "searchresults";
     onde.MsgError = "error";
+})(onde || (onde = {}));
+var onde;
+(function (onde) {
+    /// <reference path="lib/sockjs.d.ts" />
+    (function (connection) {
+        var _curSubId = 0;
+
+        var Doc = (function () {
+            function Doc() {
+                this.subs = [];
+            }
+            return Doc;
+        })();
+
+        var DocSubscription = (function () {
+            function DocSubscription(docId, _onsubscribe, _onrevision, _onack) {
+                this.docId = docId;
+                this._onsubscribe = _onsubscribe;
+                this._onrevision = _onrevision;
+                this._onack = _onack;
+                this._subId = ++_curSubId;
+            }
+            DocSubscription.prototype.revise = function (rev, ops) {
+                var req = {
+                    Type: onde.MsgRevise,
+                    Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Ops: ops }
+                };
+                sock.send(JSON.stringify(req));
+            };
+
+            DocSubscription.prototype.unsubscribe = function () {
+                // TODO
+            };
+            return DocSubscription;
+        })();
+        connection.DocSubscription = DocSubscription;
+
+        var SearchSubscription = (function () {
+            function SearchSubscription(query, _onsearchresults) {
+                this.query = query;
+                this._onsearchresults = _onsearchresults;
+            }
+            SearchSubscription.prototype.unsubscribe = function () {
+                // TODO
+            };
+            return SearchSubscription;
+        })();
+        connection.SearchSubscription = SearchSubscription;
+
+        var sock;
+        var connId;
+        var docSubs = {};
+        var searchSubs = {};
+
+        connection.onOpen;
+        connection.onClose;
+        connection.onLogin;
+
+        function connect() {
+            sock = new SockJS(getOrigin() + "/sock", null, {
+                debug: true
+            });
+
+            sock.onopen = function () {
+                if (connection.onOpen) {
+                    connection.onOpen();
+                }
+            };
+            sock.onclose = function () {
+                sock = null;
+                connId = null;
+                if (connection.onClose) {
+                    connection.onClose();
+                }
+            };
+            sock.onmessage = onMessage;
+        }
+        connection.connect = connect;
+
+        function login(userId) {
+            var req = {
+                Type: onde.MsgLogin,
+                Login: { UserId: userId }
+            };
+            sock.send(JSON.stringify(req));
+        }
+        connection.login = login;
+
+        function subscribeDoc(docId, onSubscribe, onRevision, onAck) {
+            var alreadySubbed = false;
+            if (docId in docSubs) {
+                alreadySubbed = true;
+            } else {
+                docSubs[docId] = new Doc();
+                var req = {
+                    Type: onde.MsgSubscribeDoc,
+                    SubscribeDoc: { DocId: docId }
+                };
+                sock.send(JSON.stringify(req));
+            }
+
+            var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
+            var doc = docSubs[docId];
+            doc.subs.push(sub);
+
+            if (alreadySubbed) {
+                var rsp = {
+                    DocId: docId,
+                    Rev: doc.rev,
+                    Doc: doc.body
+                };
+                sub._onsubscribe(rsp);
+            }
+            return sub;
+        }
+        connection.subscribeDoc = subscribeDoc;
+
+        function subscribeSearch(query, onSearchResults) {
+            if (!(query in searchSubs)) {
+                searchSubs[query] = [];
+                var req = {
+                    Type: onde.MsgSubscribeSearch,
+                    SubscribeSearch: { Query: query }
+                };
+                sock.send(JSON.stringify(req));
+            }
+
+            var sub = new SearchSubscription(query, onSearchResults);
+            searchSubs[query].push(sub);
+            return sub;
+        }
+        connection.subscribeSearch = subscribeSearch;
+
+        function getOrigin() {
+            return location.protocol + "//" + location.hostname + (location.port ? (":" + location.port) : "");
+        }
+
+        function handleLogin(rsp) {
+            connId = rsp.ConnId;
+            if (connection.onLogin) {
+                connection.onLogin();
+            }
+        }
+
+        function handleSubscribeDoc(rsp) {
+            var doc = docSubs[rsp.DocId];
+            if (!doc) {
+                onde.log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
+                return;
+            }
+
+            doc.body = rsp.Doc;
+            doc.rev = rsp.Rev;
+            for (var i = 0; i < doc.subs.length; ++i) {
+                doc.subs[i]._onsubscribe(rsp);
+            }
+        }
+
+        function handleRevise(rsp) {
+            var doc = docSubs[rsp.DocId];
+            if (!doc) {
+                onde.log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
+                return;
+            }
+            for (var i = 0; i < doc.subs.length; ++i) {
+                var sub = doc.subs[i];
+                if ((rsp.ConnId == connId) && (rsp.SubId == sub._subId)) {
+                    sub._onack(rsp);
+                } else {
+                    sub._onrevision(rsp);
+                }
+            }
+        }
+
+        function onMessage(e) {
+            var rsp = JSON.parse(e.data);
+            switch (rsp.Type) {
+                case onde.MsgLogin:
+                    handleLogin(rsp.Login);
+                    break;
+
+                case onde.MsgSubscribeDoc:
+                    handleSubscribeDoc(rsp.SubscribeDoc);
+                    break;
+
+                case onde.MsgUnsubscribeDoc:
+                    break;
+
+                case onde.MsgRevise:
+                    handleRevise(rsp.Revise);
+                    break;
+
+                case onde.MsgSubscribeSearch:
+                    break;
+
+                case onde.MsgSearchResults:
+                    // TODO
+                    onde.log(rsp.SearchResults);
+                    break;
+
+                case onde.MsgUnsubscribeSearch:
+                    break;
+
+                case onde.MsgError:
+                    onde.log(rsp.Error.Msg);
+                    break;
+            }
+        }
+    })(onde.connection || (onde.connection = {}));
+    var connection = onde.connection;
 })(onde || (onde = {}));
 // Adapted to Typescript from original ot.js source:
 //
@@ -284,6 +497,7 @@ else
 // license that can be found in the LICENSE file.
 //
 /// <reference path="ot.ts" />
+/// <reference path="lib/ace.d.ts" />
 var onde;
 (function (onde) {
     var range = ace.require('ace/range');
@@ -433,8 +647,6 @@ else
                 }
 
                 var delta = e.data;
-                console.log(documentLines(_this._acedoc));
-                console.log(delta);
                 var ops = deltaToOps(documentLines(_this._acedoc), delta);
                 _this.onChange(ops);
             });
@@ -484,7 +696,6 @@ else
         };
 
         Editor.prototype.onChange = function (ops) {
-            console.log(ops);
             if (this._buf !== null) {
                 this._buf = ot.compose(this._buf, ops);
             } else if (this._wait !== null) {
@@ -500,22 +711,22 @@ else
     onde.Editor = Editor;
 })(onde || (onde = {}));
 /// <reference path="api.ts" />
+/// <reference path="connection.ts" />
 /// <reference path="editor.ts" />
-/// <reference path="lib/ace.d.ts" />
-/// <reference path="lib/sockjs.d.ts" />
 var onde;
 (function (onde) {
-    var logElem = document.getElementById("log");
+    var DEBUG = true;
+
     var statusElem = document.getElementById("status");
     var docElem = document.getElementById("doc");
-
     var editor;
-    var sock;
-    var connId;
 
     function log(msg) {
-        logElem.value += msg + "\n";
+        if (DEBUG) {
+            console.log(msg);
+        }
     }
+    onde.log = log;
 
     function setStatus(msg) {
         statusElem.textContent = msg;
@@ -524,89 +735,39 @@ var onde;
     function onOpen() {
         log("connection open");
         setStatus("connected");
-        login("joel");
+        onde.connection.login("joel");
     }
 
     function onClose() {
         log("connection closed; reconnecting in 1s");
         setStatus("disconnected");
-        sock = null;
-        connId = null;
-        setTimeout(connect, 1000);
+        setTimeout(onde.connection.connect, 1000);
     }
 
-    function onMessage(e) {
-        var rsp = JSON.parse(e.data);
-        switch (rsp.Type) {
-            case onde.MsgLogin:
-                connId = rsp.Login.ConnId;
-                log("conn id: " + connId);
-                setStatus("logged in");
-                var req = {
-                    Type: onde.MsgSubscribeDoc,
-                    SubscribeDoc: { DocId: "foo" }
-                };
-                sock.send(JSON.stringify(req));
-                break;
+    function onLogin() {
+        setStatus("logged in");
 
-            case onde.MsgSubscribeDoc:
-                docElem.innerHTML = "";
-                editor = new onde.Editor(rsp.SubscribeDoc.DocId, rsp.SubscribeDoc.Rev, rsp.SubscribeDoc.Doc, function (docId, rev, ops) {
-                    var req = {
-                        Type: onde.MsgRevise,
-                        Revise: { ConnId: connId, DocId: docId, Rev: rev, Ops: ops }
-                    };
-                    sock.send(JSON.stringify(req));
-                });
-                docElem.appendChild(editor.elem());
-                break;
-
-            case onde.MsgUnsubscribeDoc:
-                console.log("unsubscribed doc " + rsp.UnsubscribeDoc.DocId);
-                break;
-
-            case onde.MsgRevise:
-                var err;
-                if (rsp.Revise.ConnId == connId) {
-                    err = editor.ackOps(rsp.Revise.Ops);
-                } else {
-                    err = editor.recvOps(rsp.Revise.Ops);
-                }
-                if (err) {
-                    log(err);
-                }
-                break;
-
-            case onde.MsgError:
-                log(rsp.Error.Msg);
-                break;
-        }
-    }
-
-    function login(userId) {
-        var req = {
-            Type: onde.MsgLogin,
-            Login: { UserId: userId }
-        };
-        sock.send(JSON.stringify(req));
-    }
-
-    function getOrigin() {
-        return location.protocol + "//" + location.hostname + (location.port ? (":" + location.port) : "");
-    }
-
-    function connect() {
-        sock = new SockJS(getOrigin() + "/sock", null, {
-            debug: true
+        var docSub = onde.connection.subscribeDoc("foo", function (rsp) {
+            docElem.innerHTML = "";
+            editor = new onde.Editor(rsp.DocId, rsp.Rev, rsp.Doc, function (docId, rev, ops) {
+                docSub.revise(rev, ops);
+            });
+            docElem.appendChild(editor.elem());
+        }, function (rsp) {
+            editor.recvOps(rsp.Ops);
+        }, function (rsp) {
+            editor.ackOps(rsp.Ops);
         });
 
-        sock.onopen = onOpen;
-        sock.onclose = onClose;
-        sock.onmessage = onMessage;
+        onde.connection.subscribeSearch("wut", function (rsp) {
+        });
     }
 
     function main() {
-        connect();
+        onde.connection.onOpen = onOpen;
+        onde.connection.onClose = onClose;
+        onde.connection.onLogin = onLogin;
+        onde.connection.connect();
     }
     onde.main = main;
 })(onde || (onde = {}));

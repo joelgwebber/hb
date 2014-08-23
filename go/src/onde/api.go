@@ -9,19 +9,25 @@ import (
 )
 
 const (
-	MsgLogin          = "login"
-	MsgSubscribeDoc   = "subscribedoc"
-	MsgUnsubscribeDoc = "unsubscribedoc"
-	MsgRevise         = "revise"
-	MsgError          = "error"
+	MsgLogin             = "login"
+	MsgSubscribeDoc      = "subscribedoc"
+	MsgUnsubscribeDoc    = "unsubscribedoc"
+	MsgRevise            = "revise"
+	MsgSubscribeSearch   = "subscribesearch"
+	MsgUnsubscribeSearch = "unsubscribesearch"
+	MsgSearchResults     = "searchresults"
+	MsgError             = "error"
 )
 
+// Requests.
 type Req struct {
-	Type           string
-	Login          *LoginReq
-	Revise         *ReviseReq
-	SubscribeDoc   *SubscribeDocReq
-	UnsubscribeDoc *UnsubscribeDocReq
+	Type              string
+	Login             *LoginReq
+	SubscribeDoc      *SubscribeDocReq
+	UnsubscribeDoc    *UnsubscribeDocReq
+	Revise            *ReviseReq
+	SubscribeSearch   *SubscribeSearchReq
+	UnsubscribeSearch *UnsubscribeSearchReq
 }
 
 type LoginReq struct {
@@ -38,18 +44,33 @@ type UnsubscribeDocReq struct {
 
 type ReviseReq struct {
 	ConnId string
+	SubId  int
 	DocId  string
 	Rev    int
 	Ops    ot.Ops
 }
 
+type SubscribeSearchReq struct {
+	Query string
+}
+
+type UnsubscribeSearchReq struct {
+	Query string
+}
+
+// Responses.
 type Rsp struct {
-	Type           string
-	Login          *LoginRsp
-	SubscribeDoc   *SubscribeDocRsp
-	UnsubscribeDoc *UnsubscribeDocRsp
-	Revise         *ReviseRsp
-	Error          *ErrorRsp
+	Type string
+
+	Login             *LoginRsp
+	Revise            *ReviseRsp
+	SubscribeDoc      *SubscribeDocRsp
+	UnsubscribeDoc    *UnsubscribeDocRsp
+	SubscribeSearch   *SubscribeSearchRsp
+	UnsubscribeSearch *UnsubscribeSearchRsp
+
+	SearchResults *SearchResultsRsp
+	Error         *ErrorRsp
 }
 
 type LoginRsp struct {
@@ -81,12 +102,45 @@ func (rsp UnsubscribeDocRsp) Send(sock sockjs.Session) error {
 
 type ReviseRsp struct {
 	ConnId string
+	SubId  int
+	DocId  string
 	Rev    int
 	Ops    ot.Ops
 }
 
 func (rsp ReviseRsp) Send(sock sockjs.Session) error {
 	return sendRsp(sock, &Rsp{Type: MsgRevise, Revise: &rsp})
+}
+
+// TODO: Send initial results here?
+type SubscribeSearchRsp struct {
+	Query string
+}
+
+func (rsp SubscribeSearchRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgSubscribeSearch, SubscribeSearch: &rsp})
+}
+
+type UnsubscribeSearchRsp struct {
+	Query string
+}
+
+func (rsp UnsubscribeSearchRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeSearch, UnsubscribeSearch: &rsp})
+}
+
+type SearchResultsRsp struct {
+	Total   int
+	Results []SearchResult
+}
+
+type SearchResult struct {
+	DocId string
+	Doc   string
+}
+
+func (rsp SearchResultsRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgSearchResults, SearchResults: &rsp})
 }
 
 type ErrorRsp struct {

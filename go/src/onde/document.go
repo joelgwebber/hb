@@ -17,6 +17,7 @@ type Document struct {
 
 type docUpdate struct {
 	connId string
+	subId  int
 	rev    int
 	ops    ot.Ops
 }
@@ -49,14 +50,14 @@ func SubscribeDoc(docId string, conn *Connection) (*Document, error) {
 
 // Unsubscribes a connection from the document.
 func (doc *Document) Unsubscribe(connId string) {
-	// TODO: drop document when subscriptions reach zero.
+	// TODO: drop document (and terminate goroutine when subscriptions reach zero.
 	delete(doc.subs, connId)
 }
 
 // Revise a document. Its goroutine will ensure that the resulting ops
 // are broadcast to all subscribers.
-func (doc *Document) Revise(connId string, rev int, ops ot.Ops) {
-	doc.updates <- docUpdate{connId: connId, rev: rev, ops: ops}
+func (doc *Document) Revise(connId string, subId int, rev int, ops ot.Ops) {
+	doc.updates <- docUpdate{connId: connId, subId: subId, rev: rev, ops: ops}
 }
 
 // Document's goroutine function. Takes care of applying ops and notifying
@@ -70,7 +71,7 @@ func (doc *Document) loop() {
 			return
 		}
 
-		doc.broadcast(update.connId, update.rev, outops)
+		doc.broadcast(update, outops)
 		doc.persist() // TODO: Total hack to update storage. Do this less aggressively.
 	}
 }
@@ -79,11 +80,13 @@ func (doc *Document) persist() {
 	solr.UpdateDoc("onde", doc.id, string(*doc.srv.Doc), true)
 }
 
-func (doc *Document) broadcast(connId string, rev int, ops ot.Ops) {
+func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 	for _, conn := range doc.subs {
 		ReviseRsp{
-			ConnId: connId,
-			Rev:    rev,
+			ConnId: update.connId,
+			SubId:  update.subId,
+			Rev:    update.rev,
+			DocId:  doc.id,
 			Ops:    ops,
 		}.Send(conn.sock)
 	}

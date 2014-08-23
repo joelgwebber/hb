@@ -9,17 +9,10 @@ import (
 )
 
 type Connection struct {
-	user    *User
-	sock    sockjs.Session
-	docSubs map[string]*Document // docId -> Document
-}
-
-func makeConnection(user *User, sock sockjs.Session) *Connection {
-	return &Connection{
-		user:    user,
-		sock:    sock,
-		docSubs: make(map[string]*Document),
-	}
+	user       *User
+	sock       sockjs.Session
+	docSubs    map[string]*Document // docId -> Document
+	searchSubs map[string]*Search   // query -> Search
 }
 
 func (conn *Connection) Id() string {
@@ -71,14 +64,55 @@ func (conn *Connection) handleRevise(req *ReviseReq) {
 		ErrorRsp{Msg: fmt.Sprintf("error revising document %s - not subscribed", req.DocId)}.Send(conn.sock)
 		return
 	}
-	doc.Revise(req.ConnId, req.Rev, req.Ops) // will send ReviseRsp from doc's goroutine
+	doc.Revise(req.ConnId, req.SubId, req.Rev, req.Ops)
+}
+
+func (conn *Connection) handleSubscribeSearch(req *SubscribeSearchReq) {
+	if _, exists := conn.searchSubs[req.Query]; exists {
+		ErrorRsp{Msg: fmt.Sprintf("double subscribe: %s", req.Query)}.Send(conn.sock)
+		return
+	}
+
+	search, err := SubscribeSearch(req.Query, conn)
+	if err != nil {
+		ErrorRsp{Msg: fmt.Sprintf("unable to subscribe to search: %s", req.Query)}.Send(conn.sock)
+		return
+	}
+
+	conn.searchSubs[req.Query] = search
+	SubscribeSearchRsp{
+		Query: req.Query,
+	}.Send(conn.sock)
+}
+
+func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
+	search, exists := conn.searchSubs[req.Query]
+	if !exists {
+		ErrorRsp{Msg: fmt.Sprintf("error unsubscribing search %s: no subscription found", req.Query)}.Send(conn.sock)
+		return
+	}
+
+	search.Unsubscribe(conn.Id())
+	UnsubscribeSearchRsp{Query: req.Query}.Send(conn.sock)
 }
 
 func (conn *Connection) cleanupSubs() {
 	// Remove this connection's subscriptions from their documents.
-	// Don't bother clearing conn.docSubs, because it won't be reused
+	// Don't bother clearing conn.*Subs, because it won't be reused
 	for _, doc := range conn.docSubs {
 		doc.Unsubscribe(conn.Id())
+	}
+	for _, s := range conn.searchSubs {
+		s.Unsubscribe(conn.Id())
+	}
+}
+
+func newConnection(user *User, sock sockjs.Session) *Connection {
+	return &Connection{
+		user:       user,
+		sock:       sock,
+		docSubs:    make(map[string]*Document),
+		searchSubs: make(map[string]*Search),
 	}
 }
 
@@ -104,7 +138,7 @@ func SockHandler(sock sockjs.Session) {
 				if user == nil {
 					ErrorRsp{Msg: fmt.Sprintf("Invalid user id: %s", userId)}.Send(sock)
 				} else {
-					conn = makeConnection(user, sock)
+					conn = newConnection(user, sock)
 					LoginRsp{UserId: req.Login.UserId, ConnId: conn.Id()}.Send(sock)
 				}
 
@@ -121,6 +155,16 @@ func SockHandler(sock sockjs.Session) {
 			case MsgRevise:
 				if conn.validate(sock) {
 					conn.handleRevise(req.Revise)
+				}
+
+			case MsgSubscribeSearch:
+				if conn.validate(sock) {
+					conn.handleSubscribeSearch(req.SubscribeSearch)
+				}
+
+			case MsgUnsubscribeSearch:
+				if conn.validate(sock) {
+					conn.handleUnsubscribeSearch(req.UnsubscribeSearch)
 				}
 			}
 
