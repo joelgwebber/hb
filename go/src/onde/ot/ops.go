@@ -1,8 +1,8 @@
+// Adapted from github.com/mb0/lab. Original copyright below.
+//
 // Copyright 2013 Martin Schnabel. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-// Package ot provides operational transformation utilities for byte text collaboration.
 //
 // The code is based on, and in part compatible with
 // https://github.com/Operational-Transformation/ot.js by Tim Baumann (MIT License).

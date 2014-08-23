@@ -4,28 +4,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"log"
 	"onde/ot"
 )
 
 const (
-	MsgLogin     = "login"
-	MsgSubscribe = "subscribe"
-	MsgRevise    = "revise"
-	MsgError     = "error"
+	MsgLogin          = "login"
+	MsgSubscribeDoc   = "subscribedoc"
+	MsgUnsubscribeDoc = "unsubscribedoc"
+	MsgRevise         = "revise"
+	MsgError          = "error"
 )
 
 type Req struct {
-	Type      string
-	Login     *LoginReq
-	Revise    *ReviseReq
-	Subscribe *SubscribeReq
+	Type           string
+	Login          *LoginReq
+	Revise         *ReviseReq
+	SubscribeDoc   *SubscribeDocReq
+	UnsubscribeDoc *UnsubscribeDocReq
 }
 
 type LoginReq struct {
 	UserId string
 }
 
-type SubscribeReq struct {
+type SubscribeDocReq struct {
+	DocId string
+}
+
+type UnsubscribeDocReq struct {
 	DocId string
 }
 
@@ -37,11 +44,12 @@ type ReviseReq struct {
 }
 
 type Rsp struct {
-	Type      string
-	Login     *LoginRsp
-	Subscribe *SubscribeRsp
-	Revise    *ReviseRsp
-	Error     *ErrorRsp
+	Type           string
+	Login          *LoginRsp
+	SubscribeDoc   *SubscribeDocRsp
+	UnsubscribeDoc *UnsubscribeDocRsp
+	Revise         *ReviseRsp
+	Error          *ErrorRsp
 }
 
 type LoginRsp struct {
@@ -53,14 +61,22 @@ func (rsp LoginRsp) Send(sock sockjs.Session) error {
 	return sendRsp(sock, &Rsp{Type: MsgLogin, Login: &rsp})
 }
 
-type SubscribeRsp struct {
+type SubscribeDocRsp struct {
 	DocId string
 	Rev   int
 	Doc   string
 }
 
-func (rsp SubscribeRsp) Send(sock sockjs.Session) error {
-	return sendRsp(sock, &Rsp{Type: MsgSubscribe, Subscribe: &rsp})
+func (rsp SubscribeDocRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgSubscribeDoc, SubscribeDoc: &rsp})
+}
+
+type UnsubscribeDocRsp struct {
+	DocId string
+}
+
+func (rsp UnsubscribeDocRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeDoc, UnsubscribeDoc: &rsp})
 }
 
 type ReviseRsp struct {
@@ -78,6 +94,7 @@ type ErrorRsp struct {
 }
 
 func (rsp ErrorRsp) Send(sock sockjs.Session) error {
+	log.Printf("client error: %s", rsp.Msg)
 	return sendRsp(sock, &Rsp{Type: MsgError, Error: &rsp})
 }
 

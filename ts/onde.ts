@@ -6,7 +6,7 @@
 module onde {
   var logElem = <HTMLInputElement>document.getElementById("log");
   var statusElem = document.getElementById("status");
-  var editElem = document.getElementById("doc");
+  var docElem = document.getElementById("doc");
 
   var editor: Editor;
   var sock: SockJS;
@@ -27,8 +27,10 @@ module onde {
   }
 
   function onClose() {
-    log("connection closed");
+    log("connection closed; reconnecting in 1s");
     setStatus("disconnected");
+    sock = null; connId = null;
+    setTimeout(connect, 1000);
   }
 
   function onMessage(e: SJSMessageEvent) {
@@ -39,20 +41,26 @@ module onde {
         log("conn id: " + connId);
         setStatus("logged in");
         var req: Req = {
-          Type: MsgSubscribe,
-          Subscribe: { DocId: "foo" }
+          Type: MsgSubscribeDoc,
+          SubscribeDoc: { DocId: "foo" }
         };
         sock.send(JSON.stringify(req));
         break;
 
-      case MsgSubscribe:
-        editor = new Editor(editElem, rsp.Subscribe.DocId, rsp.Subscribe.Rev, rsp.Subscribe.Doc, (docId, rev, ops) => {
+      case MsgSubscribeDoc:
+        docElem.innerHTML = "";
+        editor = new Editor(rsp.SubscribeDoc.DocId, rsp.SubscribeDoc.Rev, rsp.SubscribeDoc.Doc, (docId, rev, ops) => {
           var req: Req = {
             Type: MsgRevise,
             Revise: { ConnId: connId, DocId: docId, Rev: rev, Ops: ops }
           };
           sock.send(JSON.stringify(req));
         });
+        docElem.appendChild(editor.elem());
+        break;
+
+      case MsgUnsubscribeDoc:
+        console.log("unsubscribed doc " + rsp.UnsubscribeDoc.DocId);
         break;
 
       case MsgRevise:

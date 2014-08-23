@@ -1,3 +1,10 @@
+// Some parts adapted from github.com/mb0/lab
+//
+// Copyright 2013 Martin Schnabel. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+
 /// <reference path="ot.ts" />
 
 module onde {
@@ -44,6 +51,14 @@ module onde {
     return acedoc['$lines'] || acedoc.getAllLines();
   }
 
+  function joinLines(lines: string[]): string {
+    var res = "";
+    for (var i=0; i < lines.length; i++) {
+      res += lines[i] + "\n";
+    }
+    return res;
+  }
+
   function deltaToOps(lines: string[], delta: Ace.Delta): any[] {
     var idxr = posToRestIndex(lines, delta.range.start);
     var ops = [];
@@ -62,8 +77,7 @@ module onde {
         idxr.last -= ot.utf8len(delta.text);
         break;
       case "insertLines":
-        var lines = delta.lines;
-        var text = lines.join("\n");
+        var text = joinLines(delta.lines);
         ops.push(text);
         idxr.last -= ot.utf8len(text);
         break;
@@ -109,88 +123,95 @@ module onde {
   }
 
   export class Editor {
-    private status = "";
-    private merge = false;
-    private wait: any[] = null;
-    private buf: any[] = null;
+    private _status = "";
+    private _merge = false;
+    private _wait: any[] = null;
+    private _buf: any[] = null;
+    private _elem: HTMLElement;
+    private _ace: Ace.Editor;
+    private _session: Ace.IEditSession;
+    private _acedoc: Ace.Document;
 
-    private editor: Ace.Editor;
-    private session: Ace.IEditSession;
-    private acedoc: Ace.Document;
+    constructor(private docId: string, private rev: number, text: string, private opsHandler: (docId: string, rev: number, ops: any[]) => void) {
+      this._elem = document.createElement("div");
+      this._elem.className = "Editor";
+      this._elem.textContent = text;
 
-    constructor(elem: HTMLElement, private docId: string, private rev: number, text: string, private opsHandler: (docId: string, rev: number, ops: any[]) => void) {
-      elem.textContent = text;
+      this._ace = ace.edit(this._elem);
+      this._session = this._ace.getSession();
+      this._acedoc = this._session.getDocument();
+      this._ace.setTheme("ace/theme/textmate");
+      this._ace.getSession().setMode("ace/mode/markdown");
+      this._ace.setHighlightActiveLine(false);
+      this._ace.setShowPrintMargin(false);
 
-      this.editor = ace.edit(elem);
-      this.session = this.editor.getSession();
-      this.acedoc = this.session.getDocument();
-      this.editor.setTheme("ace/theme/monokai");
-      this.editor.getSession().setMode("ace/mode/javascript");
-
-      this.acedoc.on('change', (e) => {
-        if (this.merge) {
+      this._acedoc.on('change', (e) => {
+        if (this._merge) {
           // Don't re-send changes due to ops being applied.
           return;
         }
 
         var delta = <Ace.Delta>e.data;
-        var ops = deltaToOps(documentLines(this.acedoc), delta);
+        console.log(documentLines(this._acedoc));
+        console.log(delta);
+        var ops = deltaToOps(documentLines(this._acedoc), delta);
         this.onChange(ops);
       });
     }
 
+    elem(): HTMLElement {
+      return this._elem;
+    }
+
     recvOps(ops: any[]) {
       var res: any[] = null;
-      if (this.wait !== null) {
-        res = ot.transform(ops, this.wait);
+      if (this._wait !== null) {
+        res = ot.transform(ops, this._wait);
         if (res[2] !== null) {
           return res[2];
         }
         ops = res[0];
-        this.wait = res[1];
+        this._wait = res[1];
       }
-      if (this.buf !== null) {
-        res = ot.transform(ops, this.buf);
+      if (this._buf !== null) {
+        res = ot.transform(ops, this._buf);
         if (res[2] !== null) {
           return res[2];
         }
         ops = res[0];
-        this.buf = res[1];
+        this._buf = res[1];
       }
-      this.merge = true;
-      applyOps(this.acedoc, ops);
-      this.merge = false;
+      this._merge = true;
+      applyOps(this._acedoc, ops);
+      this._merge = false;
       ++this.rev;
-      this.status = "received";
+      this._status = "received";
     }
 
     ackOps(ops: any[]) {
       var rev = this.rev + 1;
-      if (this.buf !== null) {
-        this.wait = this.buf;
-        this.buf = null;
+      if (this._buf !== null) {
+        this._wait = this._buf;
+        this._buf = null;
         this.rev = rev;
-        this.status = "waiting";
-        this.opsHandler(this.docId, rev, this.wait);
-      } else if (this.wait !== null) {
-        this.wait = null;
+        this._status = "waiting";
+        this.opsHandler(this.docId, rev, this._wait);
+      } else if (this._wait !== null) {
+        this._wait = null;
         this.rev = rev;
-        this.status = "";
+        this._status = "";
       }
     }
 
     private onChange(ops: any[]) {
-      if (this.buf !== null) {
-        var res = ot.compose(this.buf, ops);
-        if (res[1] !== null) {
-          throw "compose error";
-        }
-        this.buf = res[0];
-      } else if (this.wait !== null) {
-        this.buf = ops;
+      console.log(ops);
+      if (this._buf !== null) {
+        this._buf = ot.compose(this._buf, ops);
+      } else if (this._wait !== null) {
+        this._buf = ops;
       } else {
-        this.wait = ops;
-        this.status = "waiting";
+        this._wait = ops;
+        this._status = "waiting";
         this.opsHandler(this.docId, this.rev, ops);
       }
     }

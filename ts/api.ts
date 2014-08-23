@@ -1,22 +1,30 @@
 module onde {
 
+  // Message types.
   export var MsgLogin = "login";
-  export var MsgSubscribe = "subscribe";
+  export var MsgSubscribeDoc = "subscribedoc";
+  export var MsgUnsubscribeDoc = "unsubscribedoc";
   export var MsgRevise = "revise";
   export var MsgError = "error";
 
+  // Requests.
   export interface Req {
     Type: string;
     Login?: LoginReq;
     Revise?: ReviseReq;
-    Subscribe?: SubscribeReq;
+    SubscribeDoc?: SubscribeDocReq;
+    UnsubscribeDoc?: UnsubscribeDocReq;
   }
 
   export interface LoginReq {
     UserId: string;
   }
 
-  export interface SubscribeReq {
+  export interface SubscribeDocReq {
+    DocId: string;
+  }
+
+  export interface UnsubscribeDocReq {
     DocId: string;
   }
 
@@ -27,10 +35,12 @@ module onde {
     Ops: any[];
   }
 
+  // Responses.
   export interface Rsp {
     Type: string;
     Login?: LoginRsp;
-    Subscribe?: SubscribeRsp;
+    SubscribeDoc?: SubscribeDocRsp;
+    UnsubscribeDoc?: UnsubscribeDocRsp;
     Revise?: ReviseRsp;
     Error?: ErrorRsp;
   }
@@ -40,10 +50,14 @@ module onde {
     ConnId: string;
   }
 
-  export interface SubscribeRsp {
+  export interface SubscribeDocRsp {
     DocId: string;
     Rev:   number;
     Doc:   string;
+  }
+
+  export interface UnsubscribeDocRsp {
+    DocId: string;
   }
 
   export interface ReviseRsp {
