@@ -11,8 +11,8 @@ import (
 type Connection struct {
 	user       *User
 	sock       sockjs.Session
-	docSubs    map[string]*Document // docId -> Document
-	searchSubs map[string]*Search   // query -> Search
+	docSubs    map[int]*Document  // subId -> Document
+	searchSubs map[string]*Search // query -> Search
 }
 
 func (conn *Connection) Id() string {
@@ -28,18 +28,18 @@ func (conn *Connection) validate(sock sockjs.Session) bool {
 }
 
 func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
-	if _, exists := conn.docSubs[req.DocId]; exists {
-		ErrorRsp{Msg: fmt.Sprintf("double subscribe: %s", req.DocId)}.Send(conn.sock)
+	if _, exists := conn.docSubs[req.SubId]; exists {
+		ErrorRsp{Msg: fmt.Sprintf("double subscribe subid %d", req.SubId)}.Send(conn.sock)
 		return
 	}
 
-	doc, err := SubscribeDoc(req.DocId, conn)
+	doc, err := SubscribeDoc(req.DocId, conn, req.SubId)
 	if err != nil {
 		ErrorRsp{Msg: fmt.Sprintf("no such document: %s", req.DocId)}.Send(conn.sock)
 		return
 	}
+	conn.docSubs[req.SubId] = doc
 
-	conn.docSubs[req.DocId] = doc
 	SubscribeDocRsp{
 		DocId: req.DocId,
 		Rev:   doc.srv.Rev(),
@@ -48,18 +48,18 @@ func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
 }
 
 func (conn *Connection) handleUnsubscribeDoc(req *UnsubscribeDocReq) {
-	doc, exists := conn.docSubs[req.DocId]
+	doc, exists := conn.docSubs[req.SubId]
 	if !exists {
-		ErrorRsp{Msg: fmt.Sprintf("error unsubscribing doc %s: no subscription found", req.DocId)}.Send(conn.sock)
+		ErrorRsp{Msg: fmt.Sprintf("error unsubscribing subid %d: no subscription found", req.SubId)}.Send(conn.sock)
 		return
 	}
 
-	doc.Unsubscribe(conn.Id())
-	UnsubscribeDocRsp{DocId: req.DocId}.Send(conn.sock)
+	doc.Unsubscribe(conn.Id(), req.SubId)
+	UnsubscribeDocRsp{SubId: req.SubId}.Send(conn.sock)
 }
 
 func (conn *Connection) handleRevise(req *ReviseReq) {
-	doc, exists := conn.docSubs[req.DocId]
+	doc, exists := conn.docSubs[req.SubId]
 	if !exists {
 		ErrorRsp{Msg: fmt.Sprintf("error revising document %s - not subscribed", req.DocId)}.Send(conn.sock)
 		return
@@ -99,8 +99,8 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 func (conn *Connection) cleanupSubs() {
 	// Remove this connection's subscriptions from their documents.
 	// Don't bother clearing conn.*Subs, because it won't be reused
-	for _, doc := range conn.docSubs {
-		doc.Unsubscribe(conn.Id())
+	for subId, doc := range conn.docSubs {
+		doc.Unsubscribe(conn.Id(), subId)
 	}
 	for _, s := range conn.searchSubs {
 		s.Unsubscribe(conn.Id())
@@ -111,7 +111,7 @@ func newConnection(user *User, sock sockjs.Session) *Connection {
 	return &Connection{
 		user:       user,
 		sock:       sock,
-		docSubs:    make(map[string]*Document),
+		docSubs:    make(map[int]*Document),
 		searchSubs: make(map[string]*Search),
 	}
 }

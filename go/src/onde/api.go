@@ -36,10 +36,11 @@ type LoginReq struct {
 
 type SubscribeDocReq struct {
 	DocId string
+	SubId int
 }
 
 type UnsubscribeDocReq struct {
-	DocId string
+	SubId int
 }
 
 type ReviseReq struct {
@@ -84,6 +85,7 @@ func (rsp LoginRsp) Send(sock sockjs.Session) error {
 
 type SubscribeDocRsp struct {
 	DocId string
+	SubId int
 	Rev   int
 	Doc   string
 }
@@ -93,7 +95,7 @@ func (rsp SubscribeDocRsp) Send(sock sockjs.Session) error {
 }
 
 type UnsubscribeDocRsp struct {
-	DocId string
+	SubId int
 }
 
 func (rsp UnsubscribeDocRsp) Send(sock sockjs.Session) error {
@@ -101,11 +103,11 @@ func (rsp UnsubscribeDocRsp) Send(sock sockjs.Session) error {
 }
 
 type ReviseRsp struct {
-	ConnId string
-	SubId  int
-	DocId  string
-	Rev    int
-	Ops    ot.Ops
+	OrigConnId string
+	OrigSubId  int
+	DocId      string
+	Rev        int
+	Ops        ot.Ops
 }
 
 func (rsp ReviseRsp) Send(sock sockjs.Session) error {

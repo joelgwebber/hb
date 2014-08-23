@@ -85,6 +85,8 @@ module onde.connection {
       onRevision: (rsp: ReviseRsp) => void,
       onAck: (rsp: ReviseRsp) => void): DocSubscription {
 
+    var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
+
     var alreadySubbed = false;
     if (docId in docSubs) {
       alreadySubbed = true;
@@ -92,18 +94,18 @@ module onde.connection {
       docSubs[docId] = new Doc();
       var req: Req = {
         Type: MsgSubscribeDoc,
-        SubscribeDoc: { DocId: docId }
+        SubscribeDoc: { DocId: docId, SubId: sub._subId }
       };
       sock.send(JSON.stringify(req));
     }
 
-    var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
-    var doc = docSubs[docId]
+    var doc = docSubs[docId];
     doc.subs.push(sub);
 
     if (alreadySubbed) {
       var rsp: SubscribeDocRsp = {
         DocId: docId,
+        SubId: sub._subId,
         Rev: doc.rev,
         Doc: doc.body
       };
@@ -146,7 +148,6 @@ module onde.connection {
       log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
       return
     }
-
     doc.body = rsp.Doc;
     doc.rev = rsp.Rev;
     for (var i = 0; i < doc.subs.length; ++i) {
@@ -162,7 +163,7 @@ module onde.connection {
     }
     for (var i = 0; i < doc.subs.length; ++i) {
       var sub = doc.subs[i];
-      if ((rsp.ConnId == connId) && (rsp.SubId == sub._subId)) {
+      if ((rsp.OrigConnId == connId) && (rsp.OrigSubId == sub._subId)) {
         sub._onack(rsp);
       } else {
         sub._onrevision(rsp);

@@ -98,6 +98,8 @@ var onde;
         connection.login = login;
 
         function subscribeDoc(docId, onSubscribe, onRevision, onAck) {
+            var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
+
             var alreadySubbed = false;
             if (docId in docSubs) {
                 alreadySubbed = true;
@@ -105,18 +107,18 @@ var onde;
                 docSubs[docId] = new Doc();
                 var req = {
                     Type: onde.MsgSubscribeDoc,
-                    SubscribeDoc: { DocId: docId }
+                    SubscribeDoc: { DocId: docId, SubId: sub._subId }
                 };
                 sock.send(JSON.stringify(req));
             }
 
-            var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
             var doc = docSubs[docId];
             doc.subs.push(sub);
 
             if (alreadySubbed) {
                 var rsp = {
                     DocId: docId,
+                    SubId: sub._subId,
                     Rev: doc.rev,
                     Doc: doc.body
                 };
@@ -159,7 +161,6 @@ var onde;
                 onde.log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
                 return;
             }
-
             doc.body = rsp.Doc;
             doc.rev = rsp.Rev;
             for (var i = 0; i < doc.subs.length; ++i) {
@@ -175,7 +176,7 @@ var onde;
             }
             for (var i = 0; i < doc.subs.length; ++i) {
                 var sub = doc.subs[i];
-                if ((rsp.ConnId == connId) && (rsp.SubId == sub._subId)) {
+                if ((rsp.OrigConnId == connId) && (rsp.OrigSubId == sub._subId)) {
                     sub._onack(rsp);
                 } else {
                     sub._onrevision(rsp);
@@ -636,9 +637,9 @@ else
             this._session = this._ace.getSession();
             this._acedoc = this._session.getDocument();
             this._ace.setTheme("ace/theme/textmate");
-            this._ace.getSession().setMode("ace/mode/markdown");
             this._ace.setHighlightActiveLine(false);
             this._ace.setShowPrintMargin(false);
+            this._session.setMode("ace/mode/markdown");
 
             this._acedoc.on('change', function (e) {
                 if (_this._merge) {

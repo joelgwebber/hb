@@ -142,9 +142,9 @@ module onde {
       this._session = this._ace.getSession();
       this._acedoc = this._session.getDocument();
       this._ace.setTheme("ace/theme/textmate");
-      this._ace.getSession().setMode("ace/mode/markdown");
       this._ace.setHighlightActiveLine(false);
       this._ace.setShowPrintMargin(false);
+      this._session.setMode("ace/mode/markdown");
 
       this._acedoc.on('change', (e) => {
         if (this._merge) {

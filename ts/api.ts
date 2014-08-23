@@ -28,10 +28,11 @@ module onde {
 
   export interface SubscribeDocReq {
     DocId: string;
+    SubId: number;
   }
 
   export interface UnsubscribeDocReq {
-    DocId: string;
+    SubId: number;
   }
 
   export interface ReviseReq {
@@ -72,17 +73,18 @@ module onde {
 
   export interface SubscribeDocRsp {
     DocId: string;
+    SubId: number;
     Rev:   number;
     Doc:   string;
   }
 
   export interface UnsubscribeDocRsp {
-    DocId: string;
+    SubId: string;
   }
 
   export interface ReviseRsp {
-    ConnId: string;
-    SubId:  number;
+    OrigConnId: string;
+    OrigSubId:  number;
     DocId:  string;
     Rev:    number;
     Ops:    any[];

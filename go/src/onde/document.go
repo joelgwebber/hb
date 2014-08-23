@@ -4,6 +4,7 @@ import (
 	"log"
 	"onde/ot"
 	"onde/solr"
+	"fmt"
 )
 
 var docs = make(map[string]*Document)
@@ -23,7 +24,7 @@ type docUpdate struct {
 }
 
 // Subscribes a connection to a document, potentially loading it.
-func SubscribeDoc(docId string, conn *Connection) (*Document, error) {
+func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) {
 	// TODO: lock to avoid getting multiple copies of the same document
 	doc, exists := docs[docId]
 	if !exists {
@@ -44,14 +45,14 @@ func SubscribeDoc(docId string, conn *Connection) (*Document, error) {
 		go doc.loop()
 	}
 
-	doc.subs[conn.Id()] = conn
+	doc.subs[subKey(conn.Id(), subId)] = conn
 	return doc, nil
 }
 
 // Unsubscribes a connection from the document.
-func (doc *Document) Unsubscribe(connId string) {
+func (doc *Document) Unsubscribe(connId string, subId int) {
 	// TODO: drop document (and terminate goroutine when subscriptions reach zero.
-	delete(doc.subs, connId)
+	delete(doc.subs, subKey(connId, subId))
 }
 
 // Revise a document. Its goroutine will ensure that the resulting ops
@@ -81,13 +82,22 @@ func (doc *Document) persist() {
 }
 
 func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
-	for _, conn := range doc.subs {
-		ReviseRsp{
-			ConnId: update.connId,
-			SubId:  update.subId,
-			Rev:    update.rev,
-			DocId:  doc.id,
-			Ops:    ops,
-		}.Send(conn.sock)
+	rsp := ReviseRsp{
+		OrigConnId: update.connId,
+		OrigSubId:  update.subId,
+		Rev:        update.rev,
+		DocId:      doc.id,
+		Ops:        ops,
 	}
+	conns := make(map[*Connection]interface{})
+	for _, conn := range doc.subs {
+		conns[conn] = nil
+	}
+	for conn, _ := range conns {
+		rsp.Send(conn.sock)
+	}
+}
+
+func subKey(connId string, subId int) string {
+	return fmt.Sprintf("%s:%d", connId, subId)
 }

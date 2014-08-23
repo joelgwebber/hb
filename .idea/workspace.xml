@@ -2,18 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="42b9e8b8-1128-47b6-a75d-f445369ab525" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ts/connection.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/go/src/onde/search.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/api.go" afterPath="$PROJECT_DIR$/go/src/onde/api.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ts/api.ts" afterPath="$PROJECT_DIR$/ts/api.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/connection.go" afterPath="$PROJECT_DIR$/go/src/onde/connection.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ts/connection.ts" afterPath="$PROJECT_DIR$/ts/connection.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/document.go" afterPath="$PROJECT_DIR$/go/src/onde/document.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ts/editor.ts" afterPath="$PROJECT_DIR$/ts/editor.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pub/index.html" afterPath="$PROJECT_DIR$/pub/index.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/solr/json.go" afterPath="$PROJECT_DIR$/go/src/onde/solr/json.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pub/onde.js" afterPath="$PROJECT_DIR$/pub/onde.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ts/onde.ts" afterPath="$PROJECT_DIR$/ts/onde.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/solr/solr.go" afterPath="$PROJECT_DIR$/go/src/onde/solr/solr.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="onde.iws" />
@@ -102,21 +97,9 @@
       <file leaf-file-name="connection.ts" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ts/connection.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8648649" vertical-offset="2463" max-vertical-offset="3240">
-              <caret line="209" column="0" selection-start-line="209" selection-start-column="0" selection-end-line="209" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.7915058" vertical-offset="60" max-vertical-offset="3255">
+              <caret line="45" column="0" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="editor.ts" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ts/editor.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="2385" max-vertical-offset="3345">
-              <caret line="163" column="0" selection-start-line="163" selection-start-column="0" selection-end-line="163" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -124,8 +107,8 @@
       <file leaf-file-name="api.ts" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ts/api.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="870" max-vertical-offset="1770">
-              <caret line="73" column="4" selection-start-line="73" selection-start-column="4" selection-end-line="73" selection-end-column="4" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1800">
+              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -134,8 +117,8 @@
       <file leaf-file-name="api.go" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/go/src/onde/api.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="1170" max-vertical-offset="2505">
-              <caret line="104" column="2" selection-start-line="104" selection-start-column="2" selection-end-line="104" selection-end-column="2" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="1316" max-vertical-offset="2535">
+              <caret line="115" column="0" selection-start-line="115" selection-start-column="0" selection-end-line="115" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -144,8 +127,8 @@
       <file leaf-file-name="connection.go" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/go/src/onde/connection.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="641" max-vertical-offset="2805">
-              <caret line="59" column="0" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="540" max-vertical-offset="2805">
+              <caret line="61" column="30" selection-start-line="61" selection-start-column="30" selection-end-line="61" selection-end-column="30" />
               <folding />
             </state>
           </provider>
@@ -154,8 +137,8 @@
       <file leaf-file-name="document.go" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/go/src/onde/document.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="630" max-vertical-offset="1485">
-              <caret line="81" column="0" selection-start-line="81" selection-start-column="0" selection-end-line="81" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="780" max-vertical-offset="1635">
+              <caret line="91" column="0" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -213,12 +196,12 @@
         <option value="$PROJECT_DIR$/go/src/onde/solr/solr.go" />
         <option value="$PROJECT_DIR$/pub/onde.main.ts" />
         <option value="$PROJECT_DIR$/pub/index.html" />
-        <option value="$PROJECT_DIR$/ts/editor.ts" />
         <option value="$PROJECT_DIR$/ts/onde.ts" />
         <option value="$PROJECT_DIR$/ts/api.ts" />
         <option value="$PROJECT_DIR$/go/src/onde/api.go" />
         <option value="$PROJECT_DIR$/go/src/onde/document.go" />
         <option value="$PROJECT_DIR$/go/src/onde/connection.go" />
+        <option value="$PROJECT_DIR$/ts/editor.ts" />
         <option value="$PROJECT_DIR$/ts/connection.ts" />
       </list>
     </option>
@@ -843,12 +826,12 @@
       <workItem from="1408393472084" duration="11436000" />
       <workItem from="1408495349858" duration="6170000" />
       <workItem from="1408796550609" duration="13286000" />
-      <workItem from="1408816403408" duration="12614000" />
+      <workItem from="1408816403408" duration="14658000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="80859000" />
+    <option name="totallyTimeSpent" value="82903000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="22" width="1440" height="874" extended-state="6" />
@@ -1230,22 +1213,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/go/src/onde/document.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="630" max-vertical-offset="1485">
-          <caret line="81" column="0" selection-start-line="81" selection-start-column="0" selection-end-line="81" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/go/src/onde/connection.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="641" max-vertical-offset="2805">
-          <caret line="59" column="0" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ts/lib/ace.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.33246073" vertical-offset="6661" max-vertical-offset="44100">
@@ -1254,36 +1221,52 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/go/src/onde/api.go">
+    <entry file="file://$PROJECT_DIR$/go/src/onde/document.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1170" max-vertical-offset="2505">
-          <caret line="104" column="2" selection-start-line="104" selection-start-column="2" selection-end-line="104" selection-end-column="2" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="780" max-vertical-offset="1635">
+          <caret line="91" column="0" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ts/api.ts">
+    <entry file="file://$PROJECT_DIR$/go/src/onde/connection.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="870" max-vertical-offset="1770">
-          <caret line="73" column="4" selection-start-line="73" selection-start-column="4" selection-end-line="73" selection-end-column="4" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="540" max-vertical-offset="2805">
+          <caret line="61" column="30" selection-start-line="61" selection-start-column="30" selection-end-line="61" selection-end-column="30" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ts/editor.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="2385" max-vertical-offset="3345">
-          <caret line="163" column="0" selection-start-line="163" selection-start-column="0" selection-end-line="163" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.15706806" vertical-offset="0" max-vertical-offset="3345">
+          <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/go/src/onde/api.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1316" max-vertical-offset="2535">
+          <caret line="115" column="0" selection-start-line="115" selection-start-column="0" selection-end-line="115" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ts/api.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1800">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/ts/connection.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8648649" vertical-offset="2463" max-vertical-offset="3240">
-          <caret line="209" column="0" selection-start-line="209" selection-start-column="0" selection-end-line="209" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.7915058" vertical-offset="60" max-vertical-offset="3255">
+          <caret line="45" column="0" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
           <folding />
         </state>
       </provider>
