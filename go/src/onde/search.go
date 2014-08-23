@@ -1,11 +1,11 @@
 package onde
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"onde/solr"
 	"time"
-	"fmt"
 )
 
 var searches = make(map[string]*Search)
@@ -36,7 +36,7 @@ func (s *Search) loop() {
 	for {
 		<-time.After(5 * time.Second)
 
-		total, results, err := solr.GetDocs("onde", url.Values{ "q": []string{ fmt.Sprintf("body:%s", s.query)} })
+		total, results, err := solr.GetDocs("onde", url.Values{"q": []string{fmt.Sprintf("body:%s", s.query)}})
 		if err != nil {
 			log.Printf("error retrieving docs for search %s : %s", s.query, err)
 		}

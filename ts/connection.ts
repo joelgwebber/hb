@@ -4,12 +4,6 @@ module onde.connection {
 
   var _curSubId = 0;
 
-  class Doc {
-    subs: DocSubscription[] = [];
-    body: string;
-    rev: number;
-  }
-
   export class DocSubscription {
     _subId: number;
 
@@ -46,7 +40,7 @@ module onde.connection {
 
   var sock: SockJS;
   var connId: string;
-  var docSubs: {[docId: string]: Doc} = {};
+  var docSubs: {[key: string]: DocSubscription} = {};
   var searchSubs: {[query: string]: SearchSubscription[]} = {};
 
   export var onOpen: () => void;
@@ -86,31 +80,13 @@ module onde.connection {
       onAck: (rsp: ReviseRsp) => void): DocSubscription {
 
     var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
+    docSubs[docSubKey(docId, sub._subId)] = sub;
 
-    var alreadySubbed = false;
-    if (docId in docSubs) {
-      alreadySubbed = true;
-    } else {
-      docSubs[docId] = new Doc();
-      var req: Req = {
-        Type: MsgSubscribeDoc,
-        SubscribeDoc: { DocId: docId, SubId: sub._subId }
-      };
-      sock.send(JSON.stringify(req));
-    }
-
-    var doc = docSubs[docId];
-    doc.subs.push(sub);
-
-    if (alreadySubbed) {
-      var rsp: SubscribeDocRsp = {
-        DocId: docId,
-        SubId: sub._subId,
-        Rev: doc.rev,
-        Doc: doc.body
-      };
-      sub._onsubscribe(rsp);
-    }
+    var req: Req = {
+      Type: MsgSubscribeDoc,
+      SubscribeDoc: { DocId: docId, SubId: sub._subId }
+    };
+    sock.send(JSON.stringify(req));
     return sub;
   }
 
@@ -143,32 +119,23 @@ module onde.connection {
   }
 
   function handleSubscribeDoc(rsp: SubscribeDocRsp) {
-    var doc = docSubs[rsp.DocId];
-    if (!doc) {
-      log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
-      return
-    }
-    doc.body = rsp.Doc;
-    doc.rev = rsp.Rev;
-    for (var i = 0; i < doc.subs.length; ++i) {
-      doc.subs[i]._onsubscribe(rsp);
-    }
+    var sub = docSubs[docSubKey(rsp.DocId, rsp.SubId)];
+    sub._onsubscribe(rsp);
   }
 
   function handleRevise(rsp: ReviseRsp) {
-    var doc = docSubs[rsp.DocId];
-    if (!doc) {
-      log("unexpected state: got revision for docid " + rsp.DocId + " with no open subscriptions");
-      return
-    }
-    for (var i = 0; i < doc.subs.length; ++i) {
-      var sub = doc.subs[i];
+    for (var i = 0; i < rsp.SubIds.length; ++i) {
+      var sub = docSubs[docSubKey(rsp.DocId, rsp.SubIds[0])];
       if ((rsp.OrigConnId == connId) && (rsp.OrigSubId == sub._subId)) {
         sub._onack(rsp);
       } else {
         sub._onrevision(rsp);
       }
     }
+  }
+
+  function docSubKey(docId: string, subId: number): string {
+    return docId + ":" + subId;
   }
 
   function onMessage(e: SJSMessageEvent) {

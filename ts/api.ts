@@ -86,6 +86,7 @@ module onde {
     OrigConnId: string;
     OrigSubId:  number;
     DocId:  string;
+    SubIds: number[];
     Rev:    number;
     Ops:    any[];
   }

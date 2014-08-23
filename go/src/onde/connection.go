@@ -42,6 +42,7 @@ func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
 
 	SubscribeDocRsp{
 		DocId: req.DocId,
+		SubId: req.SubId,
 		Rev:   doc.srv.Rev(),
 		Doc:   string(*doc.srv.Doc),
 	}.Send(conn.sock)

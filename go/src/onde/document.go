@@ -1,10 +1,12 @@
 package onde
 
 import (
+	"fmt"
 	"log"
 	"onde/ot"
 	"onde/solr"
-	"fmt"
+	"strconv"
+	"strings"
 )
 
 var docs = make(map[string]*Document)
@@ -89,15 +91,22 @@ func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 		DocId:      doc.id,
 		Ops:        ops,
 	}
-	conns := make(map[*Connection]interface{})
-	for _, conn := range doc.subs {
-		conns[conn] = nil
+	conns := make(map[*Connection][]int)
+	for key, conn := range doc.subs {
+		conns[conn] = append(conns[conn], connIdFromKey(key))
 	}
 	for conn, _ := range conns {
+		rsp.SubIds = conns[conn]
 		rsp.Send(conn.sock)
 	}
 }
 
 func subKey(connId string, subId int) string {
 	return fmt.Sprintf("%s:%d", connId, subId)
+}
+
+func connIdFromKey(key string) int {
+	parts := strings.Split(key, ":")
+	subId, _ := strconv.ParseInt(parts[1], 10, 32)
+	return int(subId)
 }

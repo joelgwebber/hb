@@ -106,6 +106,7 @@ type ReviseRsp struct {
 	OrigConnId string
 	OrigSubId  int
 	DocId      string
+	SubIds     []int
 	Rev        int
 	Ops        ot.Ops
 }
