@@ -2,10 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="42b9e8b8-1128-47b6-a75d-f445369ab525" name="Default" comment="">
-      <change type="MOVED" beforePath="$PROJECT_DIR$/go/src/onde/api.go" afterPath="$PROJECT_DIR$/go/src/onde/api/api.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/go/src/onde/document.go" afterPath="$PROJECT_DIR$/go/src/onde/document/document.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/go/src/onde/search.go" afterPath="$PROJECT_DIR$/go/src/onde/search/search.go" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/go/src/onde/connection.go" afterPath="$PROJECT_DIR$/go/src/onde/connection.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="onde.iws" />
@@ -898,17 +894,21 @@
       <workItem from="1408393472084" duration="11436000" />
       <workItem from="1408495349858" duration="6170000" />
       <workItem from="1408796550609" duration="13286000" />
-      <workItem from="1408816403408" duration="28074000" />
+      <workItem from="1408816403408" duration="28090000" />
     </task>
     <task id="LOCAL-00001" summary="Implemented unsubscription. Might even work.">
       <created>1408846597086</created>
       <updated>1408846597086</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Refactored api/search/document a bit.">
+      <created>1408889776163</created>
+      <updated>1408889776163</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="96319000" />
+    <option name="totallyTimeSpent" value="96335000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="22" width="1440" height="874" extended-state="6" />
@@ -956,7 +956,8 @@
       <TodoPanelSettings />
     </option>
     <MESSAGE value="Implemented unsubscription. Might even work." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented unsubscription. Might even work." />
+    <MESSAGE value="Refactored api/search/document a bit." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactored api/search/document a bit." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
