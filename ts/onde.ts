@@ -1,13 +1,34 @@
 /// <reference path="api.ts" />
 /// <reference path="connection.ts" />
 /// <reference path="editor.ts" />
+/// <reference path="search.ts" />
 
 module onde {
   var DEBUG = true;
 
-  var statusElem = document.getElementById("status");
-  var docElem = document.getElementById("doc");
+  var searchBox: SearchBox;
   var editor: Editor;
+  var statusElem = document.getElementById("status");
+
+  export function main() {
+    searchBox = new SearchBox();
+    document.body.appendChild(searchBox.elem());
+
+    editor = new Editor();
+    document.body.appendChild(editor.elem());
+
+    statusElem = document.createElement("div");
+    statusElem.className = "Status";
+
+    searchBox.onSelectDoc = (docId) => {
+      editor.loadDoc(docId);
+    };
+
+    connection.onOpen = onOpen;
+    connection.onClose = onClose;
+    connection.onLogin = onLogin;
+    connection.connect();
+  }
 
   export function log(msg: any) {
     if (DEBUG) {
@@ -26,38 +47,13 @@ module onde {
   }
 
   function onClose() {
-    log("connection closed; reconnecting in 1s");
-    setStatus("disconnected");
-    setTimeout(connection.connect, 1000);
+    log("connection closed; refresh to reconnect for now");
+//    log("connection closed; reconnecting in 1s");
+//    setStatus("disconnected");
+//    setTimeout(connection.connect, 1000);
   }
 
   function onLogin() {
     setStatus("logged in");
-
-    var docSub = connection.subscribeDoc("foo",
-      (rsp: SubscribeDocRsp) => {
-        docElem.innerHTML = "";
-        editor = new Editor(rsp.DocId, rsp.Rev, rsp.Doc, (docId, rev, ops) => {
-          docSub.revise(rev, ops);
-        });
-        docElem.appendChild(editor.elem());
-      }, (rsp: ReviseRsp) => {
-        editor.recvOps(rsp.Ops);
-      },
-      (rsp: ReviseRsp) => {
-        editor.ackOps(rsp.Ops);
-      }
-    );
-
-    connection.subscribeSearch("wut", (rsp: SearchResultsRsp) => {
-      log(rsp);
-    });
-  }
-
-  export function main() {
-    connection.onOpen = onOpen;
-    connection.onClose = onClose;
-    connection.onLogin = onLogin;
-    connection.connect();
   }
 }

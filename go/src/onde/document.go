@@ -48,6 +48,7 @@ func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) 
 	}
 
 	doc.subs[subKey(conn.Id(), subId)] = conn
+	log.Printf("[%d] sub doc %s: %s/%d", len(doc.subs), docId, conn.Id(), subId)
 	return doc, nil
 }
 
@@ -55,6 +56,7 @@ func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) 
 func (doc *Document) Unsubscribe(connId string, subId int) {
 	// TODO: drop document (and terminate goroutine when subscriptions reach zero.
 	delete(doc.subs, subKey(connId, subId))
+	log.Printf("[%d] unsub doc %s: %s/%d", len(doc.subs), doc.id, connId, subId)
 }
 
 // Revise a document. Its goroutine will ensure that the resulting ops
@@ -75,7 +77,8 @@ func (doc *Document) loop() {
 		}
 
 		doc.broadcast(update, outops)
-		doc.persist() // TODO: Total hack to update storage. Do this less aggressively.
+
+		doc.persist() // TODO: Persist less aggressively.
 	}
 }
 

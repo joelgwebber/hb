@@ -1,14 +1,134 @@
-// Some parts adapted from github.com/mb0/lab
-//
+// Some parts adapted from github.com/mb0/lab:
 // Copyright 2013 Martin Schnabel. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 
 /// <reference path="ot.ts" />
+/// <reference path="connection.ts" />
 /// <reference path="lib/ace.d.ts" />
 
 module onde {
+
+  export class Editor {
+    private _status = "";
+    private _merge = false;
+    private _wait: any[] = null;
+    private _buf: any[] = null;
+    private _elem: HTMLElement;
+    private _ace: Ace.Editor;
+    private _session: Ace.IEditSession;
+    private _acedoc: Ace.Document;
+    private _sub: connection.DocSubscription;
+    private _rev = -1;
+
+    constructor() {
+      this._elem = document.createElement("div");
+      this._elem.className = "Editor";
+
+      this._ace = ace.edit(this._elem);
+      this._session = this._ace.getSession();
+      this._acedoc = this._session.getDocument();
+      this._ace.setTheme("ace/theme/textmate");
+      this._ace.setHighlightActiveLine(false);
+      this._ace.setShowPrintMargin(false);
+      this._session.setMode("ace/mode/markdown");
+
+      this._acedoc.on('change', (e) => {
+        if (this._rev == -1 || this._merge) {
+          // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
+          return;
+        }
+
+        var delta = <Ace.Delta>e.data;
+        var ops = deltaToOps(documentLines(this._acedoc), delta);
+        this.onChange(ops);
+      });
+    }
+
+    elem(): HTMLElement {
+      return this._elem;
+    }
+
+    loadDoc(docId: string) {
+      if (this._sub) {
+        this.unsubscribe();
+      }
+
+      this._sub = connection.subscribeDoc(docId,
+          (rsp: SubscribeDocRsp) => {
+            this._acedoc.setValue(rsp.Body);
+            this._rev = rsp.Rev;
+          },
+          (rsp: ReviseRsp) => { this.recvOps(rsp.Ops); },
+          (rsp: ReviseRsp) => { this.ackOps(rsp.Ops); }
+      );
+    }
+
+    private unsubscribe() {
+      // TODO: Check for outgoing ops and make sure they go to the server
+      // (may need to hoist op management out to a detachable class).
+      this._status = "";
+      this._merge = false;
+      this._wait = null;
+      this._buf = null;
+      this._rev = -1;
+      this._sub.unsubscribe();
+    }
+
+    private recvOps(ops: any[]) {
+      var res: any[] = null;
+      if (this._wait !== null) {
+        res = ot.transform(ops, this._wait);
+        if (res[2] !== null) {
+          return res[2];
+        }
+        ops = res[0];
+        this._wait = res[1];
+      }
+      if (this._buf !== null) {
+        res = ot.transform(ops, this._buf);
+        if (res[2] !== null) {
+          return res[2];
+        }
+        ops = res[0];
+        this._buf = res[1];
+      }
+      this._merge = true;
+      applyOps(this._acedoc, ops);
+      this._merge = false;
+      ++this._rev;
+      this._status = "received";
+    }
+
+    private ackOps(ops: any[]) {
+      var rev = this._rev + 1;
+      if (this._buf !== null) {
+        this._wait = this._buf;
+        this._buf = null;
+        this._rev = rev;
+        this._status = "waiting";
+        this._sub.revise(rev, this._wait);
+      } else if (this._wait !== null) {
+        this._wait = null;
+        this._rev = rev;
+        this._status = "";
+      }
+    }
+
+    private onChange(ops: any[]) {
+      if (this._buf !== null) {
+        this._buf = ot.compose(this._buf, ops);
+      } else if (this._wait !== null) {
+        this._buf = ops;
+      } else {
+        this._wait = ops;
+        this._status = "waiting";
+        this._sub.revise(this._rev, ops);
+      }
+    }
+  }
+
   var range = ace.require('ace/range');
 
   function utf8OffsetToPos(lines: string[], off: number, startrow: number): Ace.Position {
@@ -119,98 +239,6 @@ module onde {
         pos = utf8OffsetToPos(lines, index - cache.at, cache.row);
         cache = {row: pos.row, at: index - pos.column};
         acedoc.remove(new range.Range(pos.row, pos.column, end.row, end.column));
-      }
-    }
-  }
-
-  export class Editor {
-    private _status = "";
-    private _merge = false;
-    private _wait: any[] = null;
-    private _buf: any[] = null;
-    private _elem: HTMLElement;
-    private _ace: Ace.Editor;
-    private _session: Ace.IEditSession;
-    private _acedoc: Ace.Document;
-
-    constructor(private docId: string, private rev: number, text: string, private opsHandler: (docId: string, rev: number, ops: any[]) => void) {
-      this._elem = document.createElement("div");
-      this._elem.className = "Editor";
-      this._elem.textContent = text;
-
-      this._ace = ace.edit(this._elem);
-      this._session = this._ace.getSession();
-      this._acedoc = this._session.getDocument();
-      this._ace.setTheme("ace/theme/textmate");
-      this._ace.setHighlightActiveLine(false);
-      this._ace.setShowPrintMargin(false);
-      this._session.setMode("ace/mode/markdown");
-
-      this._acedoc.on('change', (e) => {
-        if (this._merge) {
-          // Don't re-send changes due to ops being applied.
-          return;
-        }
-
-        var delta = <Ace.Delta>e.data;
-        var ops = deltaToOps(documentLines(this._acedoc), delta);
-        this.onChange(ops);
-      });
-    }
-
-    elem(): HTMLElement {
-      return this._elem;
-    }
-
-    recvOps(ops: any[]) {
-      var res: any[] = null;
-      if (this._wait !== null) {
-        res = ot.transform(ops, this._wait);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._wait = res[1];
-      }
-      if (this._buf !== null) {
-        res = ot.transform(ops, this._buf);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._buf = res[1];
-      }
-      this._merge = true;
-      applyOps(this._acedoc, ops);
-      this._merge = false;
-      ++this.rev;
-      this._status = "received";
-    }
-
-    ackOps(ops: any[]) {
-      var rev = this.rev + 1;
-      if (this._buf !== null) {
-        this._wait = this._buf;
-        this._buf = null;
-        this.rev = rev;
-        this._status = "waiting";
-        this.opsHandler(this.docId, rev, this._wait);
-      } else if (this._wait !== null) {
-        this._wait = null;
-        this.rev = rev;
-        this._status = "";
-      }
-    }
-
-    private onChange(ops: any[]) {
-      if (this._buf !== null) {
-        this._buf = ot.compose(this._buf, ops);
-      } else if (this._wait !== null) {
-        this._buf = ops;
-      } else {
-        this._wait = ops;
-        this._status = "waiting";
-        this.opsHandler(this.docId, this.rev, ops);
       }
     }
   }

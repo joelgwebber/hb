@@ -87,7 +87,7 @@ type SubscribeDocRsp struct {
 	DocId string
 	SubId int
 	Rev   int
-	Doc   string
+	Body  string
 }
 
 func (rsp SubscribeDocRsp) Send(sock sockjs.Session) error {
@@ -140,7 +140,7 @@ type SearchResultsRsp struct {
 
 type SearchResult struct {
 	DocId string
-	Doc   string
+	Body  string
 }
 
 func (rsp SearchResultsRsp) Send(sock sockjs.Session) error {

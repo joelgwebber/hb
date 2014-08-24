@@ -1,5 +1,9 @@
 /// <reference path="lib/sockjs.d.ts" />
 
+// TODO:
+// - Implement outgoing message queue.
+// - Re-establish connection automatically.
+// - Track acknowledged requests.
 module onde.connection {
 
   var _curSubId = 0;
@@ -139,6 +143,11 @@ module onde.connection {
   function handleRevise(rsp: ReviseRsp) {
     for (var i = 0; i < rsp.SubIds.length; ++i) {
       var sub = docSubs[docSubKey(rsp.DocId, rsp.SubIds[0])];
+      if (!sub) {
+        log("got results for doc " + rsp.DocId + " with no local subscription");
+        continue;
+      }
+
       if ((rsp.OrigConnId == connId) && (rsp.OrigSubId == sub._subId)) {
         sub._onack(rsp);
       } else {
@@ -149,6 +158,11 @@ module onde.connection {
 
   function handleSearchResults(rsp: SearchResultsRsp) {
     var subs = searchSubs[rsp.Query];
+    if (!subs) {
+      log("got results for search " + rsp.Query + " with no local subscription");
+      return;
+    }
+
     for (var i = 0; i < subs.length; ++i) {
       subs[i]._onsearchresults(rsp);
     }

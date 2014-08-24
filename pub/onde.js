@@ -13,6 +13,10 @@ var onde;
 var onde;
 (function (onde) {
     /// <reference path="lib/sockjs.d.ts" />
+    // TODO:
+    // - Implement outgoing message queue.
+    // - Re-establish connection automatically.
+    // - Track acknowledged requests.
     (function (connection) {
         var _curSubId = 0;
 
@@ -151,6 +155,11 @@ var onde;
         function handleRevise(rsp) {
             for (var i = 0; i < rsp.SubIds.length; ++i) {
                 var sub = docSubs[docSubKey(rsp.DocId, rsp.SubIds[0])];
+                if (!sub) {
+                    onde.log("got results for doc " + rsp.DocId + " with no local subscription");
+                    continue;
+                }
+
                 if ((rsp.OrigConnId == connId) && (rsp.OrigSubId == sub._subId)) {
                     sub._onack(rsp);
                 } else {
@@ -161,6 +170,11 @@ var onde;
 
         function handleSearchResults(rsp) {
             var subs = searchSubs[rsp.Query];
+            if (!subs) {
+                onde.log("got results for search " + rsp.Query + " with no local subscription");
+                return;
+            }
+
             for (var i = 0; i < subs.length; ++i) {
                 subs[i]._onsearchresults(rsp);
             }
@@ -476,16 +490,132 @@ else
     }
     ot.transform = transform;
 })(ot || (ot = {}));
-// Some parts adapted from github.com/mb0/lab
-//
+// Some parts adapted from github.com/mb0/lab:
 // Copyright 2013 Martin Schnabel. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 /// <reference path="ot.ts" />
+/// <reference path="connection.ts" />
 /// <reference path="lib/ace.d.ts" />
 var onde;
 (function (onde) {
+    var Editor = (function () {
+        function Editor() {
+            var _this = this;
+            this._status = "";
+            this._merge = false;
+            this._wait = null;
+            this._buf = null;
+            this._rev = -1;
+            this._elem = document.createElement("div");
+            this._elem.className = "Editor";
+
+            this._ace = ace.edit(this._elem);
+            this._session = this._ace.getSession();
+            this._acedoc = this._session.getDocument();
+            this._ace.setTheme("ace/theme/textmate");
+            this._ace.setHighlightActiveLine(false);
+            this._ace.setShowPrintMargin(false);
+            this._session.setMode("ace/mode/markdown");
+
+            this._acedoc.on('change', function (e) {
+                if (_this._rev == -1 || _this._merge) {
+                    // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
+                    return;
+                }
+
+                var delta = e.data;
+                var ops = deltaToOps(documentLines(_this._acedoc), delta);
+                _this.onChange(ops);
+            });
+        }
+        Editor.prototype.elem = function () {
+            return this._elem;
+        };
+
+        Editor.prototype.loadDoc = function (docId) {
+            var _this = this;
+            if (this._sub) {
+                this.unsubscribe();
+            }
+
+            this._sub = onde.connection.subscribeDoc(docId, function (rsp) {
+                _this._acedoc.setValue(rsp.Body);
+                _this._rev = rsp.Rev;
+            }, function (rsp) {
+                _this.recvOps(rsp.Ops);
+            }, function (rsp) {
+                _this.ackOps(rsp.Ops);
+            });
+        };
+
+        Editor.prototype.unsubscribe = function () {
+            // TODO: Check for outgoing ops and make sure they go to the server
+            // (may need to hoist op management out to a detachable class).
+            this._status = "";
+            this._merge = false;
+            this._wait = null;
+            this._buf = null;
+            this._rev = -1;
+            this._sub.unsubscribe();
+        };
+
+        Editor.prototype.recvOps = function (ops) {
+            var res = null;
+            if (this._wait !== null) {
+                res = ot.transform(ops, this._wait);
+                if (res[2] !== null) {
+                    return res[2];
+                }
+                ops = res[0];
+                this._wait = res[1];
+            }
+            if (this._buf !== null) {
+                res = ot.transform(ops, this._buf);
+                if (res[2] !== null) {
+                    return res[2];
+                }
+                ops = res[0];
+                this._buf = res[1];
+            }
+            this._merge = true;
+            applyOps(this._acedoc, ops);
+            this._merge = false;
+            ++this._rev;
+            this._status = "received";
+        };
+
+        Editor.prototype.ackOps = function (ops) {
+            var rev = this._rev + 1;
+            if (this._buf !== null) {
+                this._wait = this._buf;
+                this._buf = null;
+                this._rev = rev;
+                this._status = "waiting";
+                this._sub.revise(rev, this._wait);
+            } else if (this._wait !== null) {
+                this._wait = null;
+                this._rev = rev;
+                this._status = "";
+            }
+        };
+
+        Editor.prototype.onChange = function (ops) {
+            if (this._buf !== null) {
+                this._buf = ot.compose(this._buf, ops);
+            } else if (this._wait !== null) {
+                this._buf = ops;
+            } else {
+                this._wait = ops;
+                this._status = "waiting";
+                this._sub.revise(this._rev, ops);
+            }
+        };
+        return Editor;
+    })();
+    onde.Editor = Editor;
+
     var range = ace.require('ace/range');
 
     function utf8OffsetToPos(lines, off, startrow) {
@@ -603,109 +733,104 @@ else
             }
         }
     }
-
-    var Editor = (function () {
-        function Editor(docId, rev, text, opsHandler) {
+})(onde || (onde = {}));
+/// <reference path="connection.ts" />
+var onde;
+(function (onde) {
+    var SearchBox = (function () {
+        function SearchBox() {
             var _this = this;
-            this.docId = docId;
-            this.rev = rev;
-            this.opsHandler = opsHandler;
-            this._status = "";
-            this._merge = false;
-            this._wait = null;
-            this._buf = null;
             this._elem = document.createElement("div");
-            this._elem.className = "Editor";
-            this._elem.textContent = text;
+            this._elem.className = "SearchBox";
+            this._input = document.createElement("input");
+            this._input.className = "entry";
+            this._results = document.createElement("div");
+            this._results.className = "results";
 
-            this._ace = ace.edit(this._elem);
-            this._session = this._ace.getSession();
-            this._acedoc = this._session.getDocument();
-            this._ace.setTheme("ace/theme/textmate");
-            this._ace.setHighlightActiveLine(false);
-            this._ace.setShowPrintMargin(false);
-            this._session.setMode("ace/mode/markdown");
+            this._elem.appendChild(this._input);
+            this._elem.appendChild(this._results);
 
-            this._acedoc.on('change', function (e) {
-                if (_this._merge) {
-                    // Don't re-send changes due to ops being applied.
-                    return;
-                }
-
-                var delta = e.data;
-                var ops = deltaToOps(documentLines(_this._acedoc), delta);
-                _this.onChange(ops);
-            });
+            this._input.onchange = function (e) {
+                _this.search(_this._input.value);
+            };
         }
-        Editor.prototype.elem = function () {
+        SearchBox.prototype.elem = function () {
             return this._elem;
         };
 
-        Editor.prototype.recvOps = function (ops) {
-            var res = null;
-            if (this._wait !== null) {
-                res = ot.transform(ops, this._wait);
-                if (res[2] !== null) {
-                    return res[2];
+        SearchBox.prototype.search = function (query) {
+            var _this = this;
+            if (this._sub) {
+                if (this._sub.query == query) {
+                    return;
                 }
-                ops = res[0];
-                this._wait = res[1];
+                this._sub.unsubscribe();
             }
-            if (this._buf !== null) {
-                res = ot.transform(ops, this._buf);
-                if (res[2] !== null) {
-                    return res[2];
-                }
-                ops = res[0];
-                this._buf = res[1];
-            }
-            this._merge = true;
-            applyOps(this._acedoc, ops);
-            this._merge = false;
-            ++this.rev;
-            this._status = "received";
+
+            this._sub = onde.connection.subscribeSearch(query, function (rsp) {
+                _this.render(rsp);
+            });
         };
 
-        Editor.prototype.ackOps = function (ops) {
-            var rev = this.rev + 1;
-            if (this._buf !== null) {
-                this._wait = this._buf;
-                this._buf = null;
-                this.rev = rev;
-                this._status = "waiting";
-                this.opsHandler(this.docId, rev, this._wait);
-            } else if (this._wait !== null) {
-                this._wait = null;
-                this.rev = rev;
-                this._status = "";
+        SearchBox.prototype.render = function (rsp) {
+            this._results.innerHTML = "";
+            for (var i = 0; i < rsp.Results.length; ++i) {
+                this._results.appendChild(this.createItem(rsp.Results[i]));
             }
         };
 
-        Editor.prototype.onChange = function (ops) {
-            if (this._buf !== null) {
-                this._buf = ot.compose(this._buf, ops);
-            } else if (this._wait !== null) {
-                this._buf = ops;
-            } else {
-                this._wait = ops;
-                this._status = "waiting";
-                this.opsHandler(this.docId, this.rev, ops);
+        SearchBox.prototype.createItem = function (result) {
+            var _this = this;
+            var item = document.createElement("div");
+            item.className = "item";
+            item.textContent = result.Body;
+            item.onclick = function (e) {
+                _this.selectItem(result.DocId);
+            };
+            return item;
+        };
+
+        SearchBox.prototype.selectItem = function (docId) {
+            if (this.onSelectDoc) {
+                this.onSelectDoc(docId);
             }
         };
-        return Editor;
+        return SearchBox;
     })();
-    onde.Editor = Editor;
+    onde.SearchBox = SearchBox;
 })(onde || (onde = {}));
 /// <reference path="api.ts" />
 /// <reference path="connection.ts" />
 /// <reference path="editor.ts" />
+/// <reference path="search.ts" />
 var onde;
 (function (onde) {
     var DEBUG = true;
 
-    var statusElem = document.getElementById("status");
-    var docElem = document.getElementById("doc");
+    var searchBox;
     var editor;
+    var statusElem = document.getElementById("status");
+
+    function main() {
+        searchBox = new onde.SearchBox();
+        document.body.appendChild(searchBox.elem());
+
+        editor = new onde.Editor();
+        document.body.appendChild(editor.elem());
+
+        statusElem = document.createElement("div");
+        statusElem.className = "Status";
+
+        searchBox.onSelectDoc = function (docId) {
+            editor.loadDoc(docId);
+        };
+
+        onde.connection.onOpen = onOpen;
+        onde.connection.onClose = onClose;
+        onde.connection.onLogin = onLogin;
+        onde.connection.connect();
+    }
+    onde.main = main;
 
     function log(msg) {
         if (DEBUG) {
@@ -725,38 +850,15 @@ var onde;
     }
 
     function onClose() {
-        log("connection closed; reconnecting in 1s");
-        setStatus("disconnected");
-        setTimeout(onde.connection.connect, 1000);
+        log("connection closed; refresh to reconnect for now");
+        //    log("connection closed; reconnecting in 1s");
+        //    setStatus("disconnected");
+        //    setTimeout(connection.connect, 1000);
     }
 
     function onLogin() {
         setStatus("logged in");
-
-        var docSub = onde.connection.subscribeDoc("foo", function (rsp) {
-            docElem.innerHTML = "";
-            editor = new onde.Editor(rsp.DocId, rsp.Rev, rsp.Doc, function (docId, rev, ops) {
-                docSub.revise(rev, ops);
-            });
-            docElem.appendChild(editor.elem());
-        }, function (rsp) {
-            editor.recvOps(rsp.Ops);
-        }, function (rsp) {
-            editor.ackOps(rsp.Ops);
-        });
-
-        onde.connection.subscribeSearch("wut", function (rsp) {
-            log(rsp);
-        });
     }
-
-    function main() {
-        onde.connection.onOpen = onOpen;
-        onde.connection.onClose = onClose;
-        onde.connection.onLogin = onLogin;
-        onde.connection.connect();
-    }
-    onde.main = main;
 })(onde || (onde = {}));
 /// <reference path="../ts/onde.ts" />
 onde.main();

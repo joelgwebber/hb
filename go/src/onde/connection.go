@@ -44,7 +44,7 @@ func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
 		DocId: req.DocId,
 		SubId: req.SubId,
 		Rev:   doc.srv.Rev(),
-		Doc:   string(*doc.srv.Doc),
+		Body:  string(*doc.srv.Doc),
 	}.Send(conn.sock)
 }
 
@@ -55,6 +55,7 @@ func (conn *Connection) handleUnsubscribeDoc(req *UnsubscribeDocReq) {
 		return
 	}
 
+	delete(conn.docSubs, req.SubId)
 	doc.Unsubscribe(conn.Id(), req.SubId)
 	UnsubscribeDocRsp{SubId: req.SubId}.Send(conn.sock)
 }
@@ -93,6 +94,7 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 		return
 	}
 
+	delete(conn.searchSubs, req.Query)
 	search.Unsubscribe(conn.Id())
 	UnsubscribeSearchRsp{Query: req.Query}.Send(conn.sock)
 }

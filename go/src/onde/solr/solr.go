@@ -256,7 +256,7 @@ func doRawReader(baseUrl string, params url.Values, body []byte, bodyType string
 			log.Printf("failed %s: %s", reqDesc, err)
 			return nil, err
 		}
-		log.Printf("%s", reqDesc)
+//		log.Printf("%s", reqDesc)
 		break
 	}
 

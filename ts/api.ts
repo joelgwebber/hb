@@ -75,7 +75,7 @@ module onde {
     DocId: string;
     SubId: number;
     Rev:   number;
-    Doc:   string;
+    Body:  string;
   }
 
   export interface UnsubscribeDocRsp {
@@ -107,7 +107,7 @@ module onde {
 
   export interface SearchResult {
     DocId: string;
-    Doc: string;
+    Body: string;
   }
 
   export interface ErrorRsp {
