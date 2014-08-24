@@ -11,14 +11,21 @@
       overflow: auto;
     }
     .SearchBox > .entry {
-      height: 24px;
+      height: 16px;
+      width: 95%;
+      margin-bottom: 8px;
     }
     .SearchBox > .results {
     }
     .SearchBox > .results > .item {
       height: 32px;
+      line-height: 32px;
+      overflow: hidden;
+      white-space: nowrap;
+      vertical-align: middle;
       text-overflow: ellipsis;
       border-bottom: 1px solid black;
+      cursor: pointer;
     }
 
     .Editor {
@@ -31,6 +38,12 @@
       position: absolute;
       left: 0; right: 0px;
       height: 24px; bottom: 0;
+    }
+
+    .Create {
+      position: absolute;
+      top: 0; right: 0;
+      width: 48px; height: 24px;
     }
   </style>
 </head>

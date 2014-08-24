@@ -6,8 +6,6 @@
 // - Track acknowledged requests.
 module onde.connection {
 
-  var _curSubId = 0;
-
   export class DocSubscription {
     _subId: number;
 
@@ -55,10 +53,14 @@ module onde.connection {
     }
   }
 
+  var _curSubId = 0;
+  var _curCreateId = 0;
+
   var sock: SockJS;
   var connId: string;
   var docSubs: {[key: string]: DocSubscription} = {};
   var searchSubs: {[query: string]: SearchSubscription[]} = {};
+  var onCreates: {[createId: number]: (rsp: CreateDocRsp) => void} = {};
 
   export var onOpen: () => void;
   export var onClose: () => void;
@@ -124,6 +126,16 @@ module onde.connection {
     return sub;
   }
 
+  export function createDoc(onCreated: (rsp: CreateDocRsp) => void) {
+    var id = ++_curCreateId;
+    onCreates[id] = onCreated;
+    var req: Req = {
+      Type: MsgCreateDoc,
+      CreateDoc: { CreateId: id }
+    };
+    sock.send(JSON.stringify(req));
+  }
+
   function getOrigin(): string {
     return location.protocol + "//" + location.hostname + (location.port ? (":" + location.port) : "");
   }
@@ -168,6 +180,17 @@ module onde.connection {
     }
   }
 
+  function handleCreateDoc(rsp: CreateDocRsp) {
+    var onCreate = onCreates[rsp.CreateId];
+    if (!onCreate) {
+      log("got unmatched create response " + rsp.CreateId);
+      return;
+    }
+
+    delete onCreates[rsp.CreateId];
+    onCreate(rsp);
+  }
+
   function docSubKey(docId: string, subId: number): string {
     return docId + ":" + subId;
   }
@@ -201,6 +224,10 @@ module onde.connection {
 
       case MsgUnsubscribeSearch:
         // TODO
+        break;
+
+      case MsgCreateDoc:
+        handleCreateDoc(rsp.CreateDoc);
         break;
 
       case MsgError:

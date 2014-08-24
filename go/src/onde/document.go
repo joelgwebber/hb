@@ -7,6 +7,7 @@ import (
 	"onde/solr"
 	"strconv"
 	"strings"
+	"math/rand"
 )
 
 var docs = make(map[string]*Document)
@@ -23,6 +24,17 @@ type docUpdate struct {
 	subId  int
 	rev    int
 	ops    ot.Ops
+}
+
+func CreateDoc() (string, error) {
+	// TODO: WILL NOT WORK FOR LONG.
+	docId := strconv.FormatInt(rand.Int63(), 10)
+
+	if err := solr.UpdateDoc("onde", docId, "", true); err != nil {
+		return "", err
+	}
+
+	return docId, nil
 }
 
 // Subscribes a connection to a document, potentially loading it.

@@ -8,6 +8,7 @@ var onde;
     onde.MsgSubscribeSearch = "subscribesearch";
     onde.MsgUnsubscribeSearch = "unsubscribesearch";
     onde.MsgSearchResults = "searchresults";
+    onde.MsgCreateDoc = "createdoc";
     onde.MsgError = "error";
 })(onde || (onde = {}));
 var onde;
@@ -18,8 +19,6 @@ var onde;
     // - Re-establish connection automatically.
     // - Track acknowledged requests.
     (function (connection) {
-        var _curSubId = 0;
-
         var DocSubscription = (function () {
             function DocSubscription(docId, _onsubscribe, _onrevision, _onack) {
                 this.docId = docId;
@@ -68,10 +67,14 @@ var onde;
         })();
         connection.SearchSubscription = SearchSubscription;
 
+        var _curSubId = 0;
+        var _curCreateId = 0;
+
         var sock;
         var connId;
         var docSubs = {};
         var searchSubs = {};
+        var onCreates = {};
 
         connection.onOpen;
         connection.onClose;
@@ -136,6 +139,17 @@ var onde;
         }
         connection.subscribeSearch = subscribeSearch;
 
+        function createDoc(onCreated) {
+            var id = ++_curCreateId;
+            onCreates[id] = onCreated;
+            var req = {
+                Type: onde.MsgCreateDoc,
+                CreateDoc: { CreateId: id }
+            };
+            sock.send(JSON.stringify(req));
+        }
+        connection.createDoc = createDoc;
+
         function getOrigin() {
             return location.protocol + "//" + location.hostname + (location.port ? (":" + location.port) : "");
         }
@@ -180,6 +194,17 @@ var onde;
             }
         }
 
+        function handleCreateDoc(rsp) {
+            var onCreate = onCreates[rsp.CreateId];
+            if (!onCreate) {
+                onde.log("got unmatched create response " + rsp.CreateId);
+                return;
+            }
+
+            delete onCreates[rsp.CreateId];
+            onCreate(rsp);
+        }
+
         function docSubKey(docId, subId) {
             return docId + ":" + subId;
         }
@@ -210,6 +235,10 @@ var onde;
                     break;
 
                 case onde.MsgUnsubscribeSearch:
+                    break;
+
+                case onde.MsgCreateDoc:
+                    handleCreateDoc(rsp.CreateDoc);
                     break;
 
                 case onde.MsgError:
@@ -809,7 +838,8 @@ var onde;
 
     var searchBox;
     var editor;
-    var statusElem = document.getElementById("status");
+    var statusElem;
+    var createElem;
 
     function main() {
         searchBox = new onde.SearchBox();
@@ -820,9 +850,21 @@ var onde;
 
         statusElem = document.createElement("div");
         statusElem.className = "Status";
+        document.body.appendChild(statusElem);
+
+        createElem = document.createElement("button");
+        createElem.className = "Create";
+        createElem.textContent = "create";
+        document.body.appendChild(createElem);
 
         searchBox.onSelectDoc = function (docId) {
             editor.loadDoc(docId);
+        };
+
+        createElem.onclick = function (e) {
+            onde.connection.createDoc(function (rsp) {
+                editor.loadDoc(rsp.DocId);
+            });
         };
 
         onde.connection.onOpen = onOpen;

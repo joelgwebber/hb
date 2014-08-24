@@ -18,7 +18,7 @@ import (
 // invalid.
 var ErrBadHandshake = errors.New("websocket: bad handshake")
 
-// NewClient creates a new client connection using the given net connection.
+// NewClient onCreates a new client connection using the given net connection.
 // The URL u specifies the host and request URI. Use requestHeader to specify
 // the origin (Origin), subprotocols (Sec-WebSocket-Protocol) and cookies
 // (Cookie). Use the response.Header to get the selected subprotocol
@@ -148,7 +148,7 @@ func hostPortNoPort(u *url.URL) (hostPort, hostNoPort string) {
 // DefaultDialer is a dialer with all fields set to the default zero values.
 var DefaultDialer *Dialer
 
-// Dial creates a new client connection. Use requestHeader to specify the
+// Dial onCreates a new client connection. Use requestHeader to specify the
 // origin (Origin), subprotocols (Sec-WebSocket-Protocol) and cookies (Cookie).
 // Use the response.Header to get the selected subprotocol
 // (Sec-WebSocket-Protocol) and cookies (Set-Cookie).

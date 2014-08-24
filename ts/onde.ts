@@ -8,7 +8,8 @@ module onde {
 
   var searchBox: SearchBox;
   var editor: Editor;
-  var statusElem = document.getElementById("status");
+  var statusElem;
+  var createElem;
 
   export function main() {
     searchBox = new SearchBox();
@@ -19,9 +20,21 @@ module onde {
 
     statusElem = document.createElement("div");
     statusElem.className = "Status";
+    document.body.appendChild(statusElem);
+
+    createElem = document.createElement("button");
+    createElem.className = "Create";
+    createElem.textContent = "create";
+    document.body.appendChild(createElem);
 
     searchBox.onSelectDoc = (docId) => {
       editor.loadDoc(docId);
+    };
+
+    createElem.onclick = (e) => {
+      connection.createDoc((rsp) => {
+        editor.loadDoc(rsp.DocId);
+      });
     };
 
     connection.onOpen = onOpen;

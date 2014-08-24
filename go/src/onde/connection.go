@@ -99,6 +99,15 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 	UnsubscribeSearchRsp{Query: req.Query}.Send(conn.sock)
 }
 
+func (conn *Connection) handleCreateDoc(req *CreateDocReq) {
+	docId, err := CreateDoc()
+	if err != nil {
+		ErrorRsp{Msg: fmt.Sprintf("error creating document: %s", err)}.Send(conn.sock)
+		return
+	}
+	CreateDocRsp{ CreateId: req.CreateId, DocId: docId }.Send(conn.sock)
+}
+
 func (conn *Connection) cleanupSubs() {
 	// Remove this connection's subscriptions from their documents.
 	// Don't bother clearing conn.*Subs, because it won't be reused
@@ -168,6 +177,11 @@ func SockHandler(sock sockjs.Session) {
 			case MsgUnsubscribeSearch:
 				if conn.validate(sock) {
 					conn.handleUnsubscribeSearch(req.UnsubscribeSearch)
+				}
+
+			case MsgCreateDoc:
+				if conn.validate(sock) {
+					conn.handleCreateDoc(req.CreateDoc)
 				}
 			}
 

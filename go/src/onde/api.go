@@ -16,6 +16,7 @@ const (
 	MsgSubscribeSearch   = "subscribesearch"
 	MsgUnsubscribeSearch = "unsubscribesearch"
 	MsgSearchResults     = "searchresults"
+	MsgCreateDoc         = "createdoc"
 	MsgError             = "error"
 )
 
@@ -28,6 +29,7 @@ type Req struct {
 	Revise            *ReviseReq
 	SubscribeSearch   *SubscribeSearchReq
 	UnsubscribeSearch *UnsubscribeSearchReq
+	CreateDoc         *CreateDocReq
 }
 
 type LoginReq struct {
@@ -59,6 +61,10 @@ type UnsubscribeSearchReq struct {
 	Query string
 }
 
+type CreateDocReq struct {
+	CreateId int
+}
+
 // Responses.
 type Rsp struct {
 	Type string
@@ -69,6 +75,7 @@ type Rsp struct {
 	UnsubscribeDoc    *UnsubscribeDocRsp
 	SubscribeSearch   *SubscribeSearchRsp
 	UnsubscribeSearch *UnsubscribeSearchRsp
+	CreateDoc         *CreateDocRsp
 
 	SearchResults *SearchResultsRsp
 	Error         *ErrorRsp
@@ -130,6 +137,15 @@ type UnsubscribeSearchRsp struct {
 
 func (rsp UnsubscribeSearchRsp) Send(sock sockjs.Session) error {
 	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeSearch, UnsubscribeSearch: &rsp})
+}
+
+type CreateDocRsp struct {
+	CreateId int
+	DocId    string
+}
+
+func (rsp CreateDocRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgCreateDoc, CreateDoc: &rsp})
 }
 
 type SearchResultsRsp struct {

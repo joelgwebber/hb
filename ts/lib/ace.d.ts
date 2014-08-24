@@ -2513,7 +2513,7 @@ declare module Ace {
 
 
     /**
-     * This class takes a set of highlighting rules, and creates a tokenizer out of them. For more information, see [the wiki on extending highlighters](https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode#wiki-extendingTheHighlighter).
+     * This class takes a set of highlighting rules, and onCreates a tokenizer out of them. For more information, see [the wiki on extending highlighters](https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode#wiki-extendingTheHighlighter).
     **/
     export interface Tokenizer {
 
@@ -2578,7 +2578,7 @@ declare module Ace {
     }
     var UndoManager: {
         /**
-         * Resets the current undo state and creates a new `UndoManager`.
+         * Resets the current undo state and onCreates a new `UndoManager`.
         **/
         new(): UndoManager;
     }

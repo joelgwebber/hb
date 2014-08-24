@@ -8,6 +8,7 @@ module onde {
   export var MsgSubscribeSearch = "subscribesearch";
   export var MsgUnsubscribeSearch = "unsubscribesearch";
   export var MsgSearchResults = "searchresults";
+  export var MsgCreateDoc = "createdoc";
   export var MsgError = "error";
 
   // Requests.
@@ -20,6 +21,7 @@ module onde {
     Revise?: ReviseReq;
     SubscribeSearch?: SubscribeSearchReq;
     UnsubscribeSearch?: UnsubscribeSearchReq;
+    CreateDoc?: CreateDocReq;
   }
 
   export interface LoginReq {
@@ -51,6 +53,10 @@ module onde {
     Query: string;
   }
 
+  export interface CreateDocReq {
+    CreateId: number;
+  }
+
   // Responses.
   export interface Rsp {
     Type: string;
@@ -61,6 +67,7 @@ module onde {
     Revise?: ReviseRsp;
     SubscribeSearch?: SubscribeSearchRsp;
     UnsubscribeSearch?: UnsubscribeSearchRsp;
+    CreateDoc?: CreateDocRsp;
 
     SearchResults?: SearchResultsRsp;
     Error?: ErrorRsp;
@@ -97,6 +104,11 @@ module onde {
 
   export interface UnsubscribeSearchRsp {
     Query: string;
+  }
+
+  export interface CreateDocRsp {
+    CreateId: number;
+    DocId: string;
   }
 
   export interface SearchResultsRsp {
