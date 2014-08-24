@@ -1,36 +1,38 @@
-package onde
+package search
 
 import (
 	"fmt"
 	"log"
 	"net/url"
-	"onde/solr"
 	"time"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"onde/solr"
+	. "onde/api"
 )
 
 var searches = make(map[string]*Search)
 
 type Search struct {
 	query string
-	subs  map[string]*Connection
+	subs  map[string]sockjs.Session
 	done  bool
 }
 
-func SubscribeSearch(query string, conn *Connection) (*Search, error) {
+func Subscribe(query string, connId string, sock sockjs.Session) (*Search, error) {
 	// TODO: lock to avoid getting multiple copies of the same search
 	s, exists := searches[query]
 	if !exists {
 		s = &Search{
 			query: query,
-			subs:  make(map[string]*Connection),
+			subs:  make(map[string]sockjs.Session),
 		}
 		searches[query] = s
 
 		go s.loop()
 	}
 
-	s.subs[conn.Id()] = conn
-	log.Printf("[%d] sub search %s: %s", len(s.subs), query, conn.Id())
+	s.subs[connId] = sock
+	log.Printf("[%d] sub search %s: %s", len(s.subs), query, connId)
 	return s, nil
 }
 
@@ -50,6 +52,8 @@ func (s *Search) loop() {
 		}
 		s.broadcast(rsp)
 
+		// TODO: This keeps us from searching solr too frequently, but we need a special case for new subscriptions
+		// (otherwise, the *second* sub to a search query waits before sending results).
 		<-time.After(5 * time.Second)
 	}
 }
@@ -68,8 +72,8 @@ func (s *Search) Unsubscribe(connId string) {
 }
 
 func (s *Search) broadcast(rsp *SearchResultsRsp) {
-	for _, conn := range s.subs {
-		rsp.Send(conn.sock)
+	for _, sock := range s.subs {
+		rsp.Send(sock)
 	}
 }
 

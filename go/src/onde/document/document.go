@@ -1,4 +1,4 @@
-package onde
+package document
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"math/rand"
+	. "onde/api"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 var docs = make(map[string]*Document)
@@ -15,7 +17,7 @@ var docs = make(map[string]*Document)
 type Document struct {
 	id      string
 	srv     *ot.Server
-	subs    map[string]*Connection
+	subs    map[string]sockjs.Session
 	updates chan docUpdate
 }
 
@@ -26,7 +28,7 @@ type docUpdate struct {
 	ops    ot.Ops
 }
 
-func CreateDoc() (string, error) {
+func Create() (string, error) {
 	// TODO: WILL NOT WORK FOR LONG.
 	docId := strconv.FormatInt(rand.Int63(), 10)
 
@@ -37,8 +39,8 @@ func CreateDoc() (string, error) {
 	return docId, nil
 }
 
-// Subscribes a connection to a document, potentially loading it.
-func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) {
+// Subscribes to a document, potentially loading it.
+func Subscribe(docId string, connId string, subId int, sock sockjs.Session) (*Document, error) {
 	// TODO: lock to avoid getting multiple copies of the same document
 	doc, exists := docs[docId]
 	if !exists {
@@ -51,7 +53,7 @@ func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) 
 		doc = &Document{
 			id:      docId,
 			srv:     &ot.Server{Doc: (*ot.Doc)(&bytes)},
-			subs:    make(map[string]*Connection),
+			subs:    make(map[string]sockjs.Session),
 			updates: make(chan docUpdate), // TODO: consider increasing channel size
 		}
 		docs[docId] = doc
@@ -59,14 +61,24 @@ func SubscribeDoc(docId string, conn *Connection, subId int) (*Document, error) 
 		go doc.loop()
 	}
 
-	doc.subs[subKey(conn.Id(), subId)] = conn
-	log.Printf("[%d] sub doc %s: %s/%d", len(doc.subs), docId, conn.Id(), subId)
+	doc.subs[subKey(connId, subId)] = sock
+	log.Printf("[%d] sub doc %s: %s/%d", len(doc.subs), docId, connId, subId)
 	return doc, nil
+}
+
+// Gets the current document revision.
+func (doc *Document) Rev() int {
+	return doc.srv.Rev()
+}
+
+// Gets the current document text.
+func (doc *Document) Text() string {
+	return string(*doc.srv.Doc)
 }
 
 // Unsubscribes a connection from the document.
 func (doc *Document) Unsubscribe(connId string, subId int) {
-	// TODO: drop document (and terminate goroutine when subscriptions reach zero.
+	// TODO: drop document (and terminate goroutine) when subscriptions reach zero.
 	delete(doc.subs, subKey(connId, subId))
 	log.Printf("[%d] unsub doc %s: %s/%d", len(doc.subs), doc.id, connId, subId)
 }
@@ -106,13 +118,13 @@ func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 		DocId:      doc.id,
 		Ops:        ops,
 	}
-	conns := make(map[*Connection][]int)
-	for key, conn := range doc.subs {
-		conns[conn] = append(conns[conn], connIdFromKey(key))
+	socks := make(map[sockjs.Session][]int)
+	for key, sock := range doc.subs {
+		socks[sock] = append(socks[sock], connIdFromKey(key))
 	}
-	for conn, _ := range conns {
-		rsp.SubIds = conns[conn]
-		rsp.Send(conn.sock)
+	for sock, _ := range socks {
+		rsp.SubIds = socks[sock]
+		rsp.Send(sock)
 	}
 }
 
