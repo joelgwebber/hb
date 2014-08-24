@@ -50,6 +50,7 @@ module onde {
     );
 
     connection.subscribeSearch("wut", (rsp: SearchResultsRsp) => {
+      log(rsp);
     });
   }
 

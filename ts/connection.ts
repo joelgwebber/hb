@@ -24,17 +24,30 @@ module onde.connection {
     }
 
     unsubscribe() {
-      // TODO
+      var req: Req = {
+        Type: MsgUnsubscribeDoc,
+        UnsubscribeDoc: { SubId: this._subId }
+      };
+      sock.send(JSON.stringify(req));
     }
   }
 
   export class SearchSubscription {
     constructor(
         public query: string,
-        private _onsearchresults: (rsp: SearchResultsRsp) => void) { }
+        public _onsearchresults: (rsp: SearchResultsRsp) => void) { }
 
     unsubscribe() {
-      // TODO
+      var subs = searchSubs[this.query];
+      subs.splice(subs.indexOf(this), 1);
+      if (subs.length == 0) {
+        var req: Req = {
+          Type: MsgUnsubscribeSearch,
+          UnsubscribeSearch: { Query: this.query }
+        };
+        sock.send(JSON.stringify(req));
+        delete searchSubs[this.query];
+      }
     }
   }
 
@@ -134,6 +147,13 @@ module onde.connection {
     }
   }
 
+  function handleSearchResults(rsp: SearchResultsRsp) {
+    var subs = searchSubs[rsp.Query];
+    for (var i = 0; i < subs.length; ++i) {
+      subs[i]._onsearchresults(rsp);
+    }
+  }
+
   function docSubKey(docId: string, subId: number): string {
     return docId + ":" + subId;
   }
@@ -162,8 +182,7 @@ module onde.connection {
         break;
 
       case MsgSearchResults:
-        // TODO
-        log(rsp.SearchResults);
+        handleSearchResults(rsp.SearchResults);
         break;
 
       case MsgUnsubscribeSearch:

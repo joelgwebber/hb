@@ -133,6 +133,7 @@ func (rsp UnsubscribeSearchRsp) Send(sock sockjs.Session) error {
 }
 
 type SearchResultsRsp struct {
+	Query   string
 	Total   int
 	Results []SearchResult
 }

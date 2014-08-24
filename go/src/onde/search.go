@@ -42,6 +42,7 @@ func (s *Search) loop() {
 		}
 
 		rsp := &SearchResultsRsp{
+			Query:   s.query,
 			Total:   total,
 			Results: makeResults(results),
 		}

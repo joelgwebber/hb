@@ -33,7 +33,11 @@ var onde;
             };
 
             DocSubscription.prototype.unsubscribe = function () {
-                // TODO
+                var req = {
+                    Type: onde.MsgUnsubscribeDoc,
+                    UnsubscribeDoc: { SubId: this._subId }
+                };
+                sock.send(JSON.stringify(req));
             };
             return DocSubscription;
         })();
@@ -45,7 +49,16 @@ var onde;
                 this._onsearchresults = _onsearchresults;
             }
             SearchSubscription.prototype.unsubscribe = function () {
-                // TODO
+                var subs = searchSubs[this.query];
+                subs.splice(subs.indexOf(this), 1);
+                if (subs.length == 0) {
+                    var req = {
+                        Type: onde.MsgUnsubscribeSearch,
+                        UnsubscribeSearch: { Query: this.query }
+                    };
+                    sock.send(JSON.stringify(req));
+                    delete searchSubs[this.query];
+                }
             };
             return SearchSubscription;
         })();
@@ -146,6 +159,13 @@ var onde;
             }
         }
 
+        function handleSearchResults(rsp) {
+            var subs = searchSubs[rsp.Query];
+            for (var i = 0; i < subs.length; ++i) {
+                subs[i]._onsearchresults(rsp);
+            }
+        }
+
         function docSubKey(docId, subId) {
             return docId + ":" + subId;
         }
@@ -172,8 +192,7 @@ var onde;
                     break;
 
                 case onde.MsgSearchResults:
-                    // TODO
-                    onde.log(rsp.SearchResults);
+                    handleSearchResults(rsp.SearchResults);
                     break;
 
                 case onde.MsgUnsubscribeSearch:
@@ -727,6 +746,7 @@ var onde;
         });
 
         onde.connection.subscribeSearch("wut", function (rsp) {
+            log(rsp);
         });
     }
 

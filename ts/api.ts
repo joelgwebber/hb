@@ -100,8 +100,9 @@ module onde {
   }
 
   export interface SearchResultsRsp {
+    Query: string;
     Total: number;
-    Resulsts: SearchResult[];
+    Results: SearchResult[];
   }
 
   export interface SearchResult {
