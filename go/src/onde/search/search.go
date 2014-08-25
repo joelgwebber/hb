@@ -2,79 +2,147 @@ package search
 
 import (
 	"fmt"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
 	"net/url"
-	"time"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"onde/solr"
 	. "onde/api"
+	"onde/solr"
+	"time"
 )
 
-var searches = make(map[string]*Search)
-
-type Search struct {
-	query string
-	subs  map[string]sockjs.Session
-	done  bool
+var master struct {
+	searches map[string]*Search
+	subs     chan subReq
+	unsubs   chan unsubReq
 }
 
+type subReq struct {
+	query    string
+	connId   string
+	sock     sockjs.Session
+	response chan<- *Search
+}
+
+type unsubReq struct {
+	search *Search
+	connId string
+}
+
+func init() {
+	master.searches = make(map[string]*Search)
+	master.subs = make(chan subReq)
+	master.unsubs = make(chan unsubReq)
+	go loop()
+}
+
+// Main search subscription loop. Controls access to Search structs via the un[subs] channels.
+func loop() {
+	done := make(chan *Search)
+
+	for {
+		select {
+		case req := <-master.subs:
+			s, exists := master.searches[req.query]
+			if !exists {
+				s = newSearch(req.query, done)
+				master.searches[req.query] = s
+			}
+			s.subs <- req
+			req.response <- s
+			log.Printf("%d searches total", len(master.searches))
+
+		case req := <-master.unsubs:
+			req.search.unsubs <- req
+
+		case s := <-done:
+			delete(master.searches, s.query)
+			log.Printf("%d searches total", len(master.searches))
+		}
+	}
+}
+
+// Subscribes to a search query.
 func Subscribe(query string, connId string, sock sockjs.Session) (*Search, error) {
-	// TODO: lock to avoid getting multiple copies of the same search
-	s, exists := searches[query]
-	if !exists {
-		s = &Search{
-			query: query,
-			subs:  make(map[string]sockjs.Session),
-		}
-		searches[query] = s
-
-		go s.loop()
-	}
-
-	s.subs[connId] = sock
-	log.Printf("[%d] sub search %s: %s", len(s.subs), query, connId)
-	return s, nil
+	rsp := make(chan *Search)
+	master.subs <- subReq{query: query, connId: connId, sock: sock, response: rsp}
+	return <-rsp, nil
 }
 
-func (s *Search) loop() {
-	for ; !s.done; {
-		// TODO: Basic optimization: Don't requery unless *something* has changed.
-		total, results, err := solr.GetDocs("onde", url.Values{"q": []string{fmt.Sprintf("body:%s", s.query)}})
-		if err != nil {
-			log.Printf("error retrieving docs for search %s : %s", s.query, err)
-		}
+// Represents a search query. Get these by calling Subscribe().
+type Search struct {
+	query         string
+	subscriptions map[string]sockjs.Session
+	done          chan interface{}
+	subs          chan subReq
+	unsubs        chan unsubReq
+	rsp           *SearchResultsRsp
+}
 
-		// TODO: Find some way to avoid sending duplicate results.
-		rsp := &SearchResultsRsp{
-			Query:   s.query,
-			Total:   total,
-			Results: makeResults(results),
-		}
-		s.broadcast(rsp)
+func newSearch(query string, done chan<- *Search) *Search {
+	s := &Search{
+		query:         query,
+		subscriptions: make(map[string]sockjs.Session),
+		done:          make(chan interface{}),
+		subs:          make(chan subReq),
+		unsubs:        make(chan unsubReq),
+	}
+	go s.loop(done)
+	return s
+}
 
-		// TODO: This keeps us from searching solr too frequently, but we need a special case for new subscriptions
-		// (otherwise, the *second* sub to a search query waits before sending results).
-		<-time.After(5 * time.Second)
+// Main loop for each running search. Maintains access to subscriptions via the subs/unsubs channels.
+func (s *Search) loop(done chan<- *Search) {
+	for {
+		select {
+		case req := <-s.subs:
+			s.subscriptions[req.connId] = req.sock
+			s.update()
+			s.send(req.sock)
+			log.Printf("[%d] sub search %s: %s", len(s.subs), req.query, req.connId)
+
+		case req := <-s.unsubs:
+			delete(s.subscriptions, req.connId)
+			if len(s.subscriptions) == 0 {
+				log.Printf("dropping search %s: %s", s.query, req.connId)
+				done <- s
+				return
+			}
+			log.Printf("[%d] unsub search %s: %s", len(s.subs), s.query, req.connId)
+
+		case <-time.After(5 * time.Second):
+			s.update()
+			s.broadcast()
+		}
 	}
 }
 
+// Unsubscribe a connection from this Search.
 func (s *Search) Unsubscribe(connId string) {
-	// TODO: Make sure this is actually threadsafe. Probably isn't.
-	delete(s.subs, connId)
+	master.unsubs <- unsubReq{search: s, connId: connId}
+}
 
-	log.Printf("[%d] unsub search %s: %s", len(s.subs), s.query, connId)
+func (s *Search) update() {
+	// TODO: Basic optimization: Don't requery unless *something* has changed.
+	total, results, err := solr.GetDocs("onde", url.Values{"q": []string{fmt.Sprintf("body:%s", s.query)}})
+	if err != nil {
+		log.Printf("error retrieving docs for search %s : %s", s.query, err)
+	}
 
-	// Drop search (and terminate goroutine) when subscriptions reach zero.
-	if len(s.subs) == 0 {
-		delete(searches, s.query)
-		s.done = true
+	s.rsp = &SearchResultsRsp{
+		Query:   s.query,
+		Total:   total,
+		Results: makeResults(results),
 	}
 }
 
-func (s *Search) broadcast(rsp *SearchResultsRsp) {
-	for _, sock := range s.subs {
-		rsp.Send(sock)
+func (s *Search) broadcast() {
+	for _, sock := range s.subscriptions {
+		s.send(sock)
 	}
+}
+
+func (s *Search) send(sock sockjs.Session) {
+	s.rsp.Send(sock)
 }
 
 func makeResults(in []solr.JsonObject) []SearchResult {

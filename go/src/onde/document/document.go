@@ -2,14 +2,14 @@ package document
 
 import (
 	"fmt"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
+	"math/rand"
+	. "onde/api"
 	"onde/ot"
 	"onde/solr"
 	"strconv"
 	"strings"
-	"math/rand"
-	. "onde/api"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 var docs = make(map[string]*Document)
@@ -41,7 +41,6 @@ func Create() (string, error) {
 
 // Subscribes to a document, potentially loading it.
 func Subscribe(docId string, connId string, subId int, sock sockjs.Session) (*Document, error) {
-	// TODO: lock to avoid getting multiple copies of the same document
 	doc, exists := docs[docId]
 	if !exists {
 		solrDoc, err := solr.GetDoc("onde", docId)
@@ -89,8 +88,7 @@ func (doc *Document) Revise(connId string, subId int, rev int, ops ot.Ops) {
 	doc.updates <- docUpdate{connId: connId, subId: subId, rev: rev, ops: ops}
 }
 
-// Document's goroutine function. Takes care of applying ops and notifying
-// subscribers.
+// Document's goroutine. Takes care of applying ops and notifying subscribers.
 func (doc *Document) loop() {
 	for {
 		update := <-doc.updates

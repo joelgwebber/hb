@@ -32,7 +32,7 @@ var onde;
                     Type: onde.MsgRevise,
                     Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Ops: ops }
                 };
-                sock.send(JSON.stringify(req));
+                send(req);
             };
 
             DocSubscription.prototype.unsubscribe = function () {
@@ -40,7 +40,7 @@ var onde;
                     Type: onde.MsgUnsubscribeDoc,
                     UnsubscribeDoc: { SubId: this._subId }
                 };
-                sock.send(JSON.stringify(req));
+                send(req);
             };
             return DocSubscription;
         })();
@@ -59,7 +59,7 @@ var onde;
                         Type: onde.MsgUnsubscribeSearch,
                         UnsubscribeSearch: { Query: this.query }
                     };
-                    sock.send(JSON.stringify(req));
+                    send(req);
                     delete searchSubs[this.query];
                 }
             };
@@ -106,7 +106,7 @@ var onde;
                 Type: onde.MsgLogin,
                 Login: { UserId: userId }
             };
-            sock.send(JSON.stringify(req));
+            send(req);
         }
         connection.login = login;
 
@@ -118,7 +118,7 @@ var onde;
                 Type: onde.MsgSubscribeDoc,
                 SubscribeDoc: { DocId: docId, SubId: sub._subId }
             };
-            sock.send(JSON.stringify(req));
+            send(req);
             return sub;
         }
         connection.subscribeDoc = subscribeDoc;
@@ -130,7 +130,7 @@ var onde;
                     Type: onde.MsgSubscribeSearch,
                     SubscribeSearch: { Query: query }
                 };
-                sock.send(JSON.stringify(req));
+                send(req);
             }
 
             var sub = new SearchSubscription(query, onSearchResults);
@@ -146,7 +146,7 @@ var onde;
                 Type: onde.MsgCreateDoc,
                 CreateDoc: { CreateId: id }
             };
-            sock.send(JSON.stringify(req));
+            send(req);
         }
         connection.createDoc = createDoc;
 
@@ -209,8 +209,14 @@ var onde;
             return docId + ":" + subId;
         }
 
+        function send(req) {
+            onde.log(req);
+            sock.send(JSON.stringify(req));
+        }
+
         function onMessage(e) {
             var rsp = JSON.parse(e.data);
+            onde.log(rsp);
             switch (rsp.Type) {
                 case onde.MsgLogin:
                     handleLogin(rsp.Login);

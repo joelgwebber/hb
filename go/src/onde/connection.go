@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
-	"strings"
-	"onde/search"
 	. "onde/api"
 	"onde/document"
+	"onde/search"
+	"strings"
 )
 
 type Connection struct {
 	user       *User
 	sock       sockjs.Session
-	docSubs    map[int]*document.Document     // subId -> Document
-	searchSubs map[string]*search.Search // query -> Search
+	docSubs    map[int]*document.Document // subId -> Document
+	searchSubs map[string]*search.Search  // query -> Search
 }
 
 func SockHandler(sock sockjs.Session) {
@@ -177,7 +177,7 @@ func (conn *Connection) handleCreateDoc(req *CreateDocReq) {
 		ErrorRsp{Msg: fmt.Sprintf("error creating document: %s", err)}.Send(conn.sock)
 		return
 	}
-	CreateDocRsp{ CreateId: req.CreateId, DocId: docId }.Send(conn.sock)
+	CreateDocRsp{CreateId: req.CreateId, DocId: docId}.Send(conn.sock)
 }
 
 func (conn *Connection) cleanupSubs() {

@@ -23,13 +23,13 @@ const (
 // Requests.
 type Req struct {
 	Type              string
-	Login             *LoginReq
-	SubscribeDoc      *SubscribeDocReq
-	UnsubscribeDoc    *UnsubscribeDocReq
-	Revise            *ReviseReq
-	SubscribeSearch   *SubscribeSearchReq
-	UnsubscribeSearch *UnsubscribeSearchReq
-	CreateDoc         *CreateDocReq
+	Login             *LoginReq `json:",omitempty"`
+	SubscribeDoc      *SubscribeDocReq `json:",omitempty"`
+	UnsubscribeDoc    *UnsubscribeDocReq `json:",omitempty"`
+	Revise            *ReviseReq `json:",omitempty"`
+	SubscribeSearch   *SubscribeSearchReq `json:",omitempty"`
+	UnsubscribeSearch *UnsubscribeSearchReq `json:",omitempty"`
+	CreateDoc         *CreateDocReq `json:",omitempty"`
 }
 
 type LoginReq struct {
@@ -69,16 +69,16 @@ type CreateDocReq struct {
 type Rsp struct {
 	Type string
 
-	Login             *LoginRsp
-	Revise            *ReviseRsp
-	SubscribeDoc      *SubscribeDocRsp
-	UnsubscribeDoc    *UnsubscribeDocRsp
-	SubscribeSearch   *SubscribeSearchRsp
-	UnsubscribeSearch *UnsubscribeSearchRsp
-	CreateDoc         *CreateDocRsp
+	Login             *LoginRsp `json:",omitempty"`
+	Revise            *ReviseRsp `json:",omitempty"`
+	SubscribeDoc      *SubscribeDocRsp `json:",omitempty"`
+	UnsubscribeDoc    *UnsubscribeDocRsp `json:",omitempty"`
+	SubscribeSearch   *SubscribeSearchRsp `json:",omitempty"`
+	UnsubscribeSearch *UnsubscribeSearchRsp `json:",omitempty"`
+	CreateDoc         *CreateDocRsp `json:",omitempty"`
 
-	SearchResults *SearchResultsRsp
-	Error         *ErrorRsp
+	SearchResults *SearchResultsRsp `json:",omitempty"`
+	Error         *ErrorRsp `json:",omitempty"`
 }
 
 type LoginRsp struct {

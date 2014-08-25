@@ -22,7 +22,7 @@ module onde.connection {
         Type: MsgRevise,
         Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Ops: ops }
       };
-      sock.send(JSON.stringify(req));
+      send(req);
     }
 
     unsubscribe() {
@@ -30,7 +30,7 @@ module onde.connection {
         Type: MsgUnsubscribeDoc,
         UnsubscribeDoc: { SubId: this._subId }
       };
-      sock.send(JSON.stringify(req));
+      send(req);
     }
   }
 
@@ -47,7 +47,7 @@ module onde.connection {
           Type: MsgUnsubscribeSearch,
           UnsubscribeSearch: { Query: this.query }
         };
-        sock.send(JSON.stringify(req));
+        send(req);
         delete searchSubs[this.query];
       }
     }
@@ -90,7 +90,7 @@ module onde.connection {
       Type: MsgLogin,
       Login: { UserId: userId }
     };
-    sock.send(JSON.stringify(req));
+    send(req);
   }
 
   export function subscribeDoc(docId: string,
@@ -105,7 +105,7 @@ module onde.connection {
       Type: MsgSubscribeDoc,
       SubscribeDoc: { DocId: docId, SubId: sub._subId }
     };
-    sock.send(JSON.stringify(req));
+    send(req);
     return sub;
   }
 
@@ -118,7 +118,7 @@ module onde.connection {
         Type: MsgSubscribeSearch,
         SubscribeSearch: { Query: query }
       };
-      sock.send(JSON.stringify(req));
+      send(req);
     }
 
     var sub = new SearchSubscription(query, onSearchResults);
@@ -133,7 +133,7 @@ module onde.connection {
       Type: MsgCreateDoc,
       CreateDoc: { CreateId: id }
     };
-    sock.send(JSON.stringify(req));
+    send(req);
   }
 
   function getOrigin(): string {
@@ -195,8 +195,14 @@ module onde.connection {
     return docId + ":" + subId;
   }
 
+  function send(req: Req) {
+    log(req);
+    sock.send(JSON.stringify(req));
+  }
+
   function onMessage(e: SJSMessageEvent) {
     var rsp = <Rsp>JSON.parse(e.data);
+    log(rsp);
     switch (rsp.Type) {
       case MsgLogin:
         handleLogin(rsp.Login);
