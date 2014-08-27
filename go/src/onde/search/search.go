@@ -32,11 +32,11 @@ func init() {
 	master.searches = make(map[string]*Search)
 	master.subs = make(chan subReq)
 	master.unsubs = make(chan unsubReq)
-	go loop()
+	go run()
 }
 
 // Main search subscription loop. Controls access to Search structs via the un[subs] channels.
-func loop() {
+func run() {
 	done := make(chan *Search)
 
 	for {
@@ -72,7 +72,6 @@ func Subscribe(query string, connId string, sock sockjs.Session) (*Search, error
 type Search struct {
 	query         string
 	subscriptions map[string]sockjs.Session
-	done          chan interface{}
 	subs          chan subReq
 	unsubs        chan unsubReq
 	rsp           *SearchResultsRsp
@@ -82,16 +81,15 @@ func newSearch(query string, done chan<- *Search) *Search {
 	s := &Search{
 		query:         query,
 		subscriptions: make(map[string]sockjs.Session),
-		done:          make(chan interface{}),
 		subs:          make(chan subReq),
 		unsubs:        make(chan unsubReq),
 	}
-	go s.loop(done)
+	go s.run(done)
 	return s
 }
 
 // Main loop for each running search. Maintains access to subscriptions via the subs/unsubs channels.
-func (s *Search) loop(done chan<- *Search) {
+func (s *Search) run(done chan<- *Search) {
 	for {
 		select {
 		case req := <-s.subs:

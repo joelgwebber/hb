@@ -12,13 +12,71 @@ import (
 	"strings"
 )
 
-var docs = make(map[string]*Document)
+var master struct {
+	docs   map[string]*Document
+	subs   chan subReq
+	unsubs chan unsubReq
+}
+
+type subReq struct {
+	docId    string
+	connId   string
+	subId    int
+	sock     sockjs.Session
+	response chan<- *Document
+}
+
+type unsubReq struct {
+	doc    *Document
+	connId string
+	subId  int
+}
+
+func init() {
+	master.docs = make(map[string]*Document)
+	master.subs = make(chan subReq)
+	master.unsubs = make(chan unsubReq)
+	go run()
+}
+
+// Main document subscription loop. Controls access to Document structs via the un[subs] channels.
+func run() {
+	done := make(chan *Document)
+
+	for {
+		select {
+		case req := <-master.subs:
+			doc, exists := master.docs[req.docId]
+			if !exists {
+				var err error
+				doc, err = newDocument(req.docId, done)
+				if err != nil {
+					// TODO: something.
+					continue
+				}
+				master.docs[req.docId] = doc
+			}
+			doc.subs <- req
+			req.response <- doc
+			log.Printf("%d docs total", len(master.docs))
+
+		case req := <-master.unsubs:
+			req.doc.unsubs <- req
+
+		case doc := <-done:
+			delete(master.docs, doc.id)
+			log.Printf("%d docs total", len(master.docs))
+		}
+	}
+}
 
 type Document struct {
-	id      string
-	srv     *ot.Server
-	subs    map[string]sockjs.Session
-	updates chan docUpdate
+	id            string
+	srv           *ot.Server
+	subscriptions map[string]sockjs.Session
+	subs          chan subReq
+	unsubs        chan unsubReq
+	updates       chan docUpdate
 }
 
 type docUpdate struct {
@@ -28,41 +86,43 @@ type docUpdate struct {
 	ops    ot.Ops
 }
 
-func Create() (string, error) {
-	// TODO: WILL NOT WORK FOR LONG.
-	docId := strconv.FormatInt(rand.Int63(), 10)
+func newDocument(docId string, done chan<- *Document) (*Document, error) {
+	solrDoc, err := solr.GetDoc("onde", docId)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := solr.UpdateDoc("onde", docId, "", true); err != nil {
+	bytes := []byte(*solrDoc.GetString("body"))
+	doc := &Document{
+		id:            docId,
+		srv:           &ot.Server{Doc: (*ot.Doc)(&bytes)},
+		subscriptions: make(map[string]sockjs.Session),
+		subs:          make(chan subReq),
+		unsubs:        make(chan unsubReq),
+		updates:       make(chan docUpdate), // TODO: consider increasing channel size
+	}
+	go doc.run(done)
+
+	return doc, nil
+}
+
+// Creates a new, empty document.
+func Create() (docId string, err error) {
+	// TODO: WILL NOT WORK FOR LONG.
+	docId = strconv.FormatInt(rand.Int63(), 10)
+
+	if err = solr.UpdateDoc("onde", docId, "", true); err != nil {
 		return "", err
 	}
 
-	return docId, nil
+	return
 }
 
 // Subscribes to a document, potentially loading it.
 func Subscribe(docId string, connId string, subId int, sock sockjs.Session) (*Document, error) {
-	doc, exists := docs[docId]
-	if !exists {
-		solrDoc, err := solr.GetDoc("onde", docId)
-		if err != nil {
-			return nil, err
-		}
-
-		bytes := []byte(*solrDoc.GetString("body"))
-		doc = &Document{
-			id:      docId,
-			srv:     &ot.Server{Doc: (*ot.Doc)(&bytes)},
-			subs:    make(map[string]sockjs.Session),
-			updates: make(chan docUpdate), // TODO: consider increasing channel size
-		}
-		docs[docId] = doc
-
-		go doc.loop()
-	}
-
-	doc.subs[subKey(connId, subId)] = sock
-	log.Printf("[%d] sub doc %s: %s/%d", len(doc.subs), docId, connId, subId)
-	return doc, nil
+	rsp := make(chan *Document)
+	master.subs <- subReq{docId: docId, connId: connId, subId: subId, sock: sock, response: rsp}
+	return <-rsp, nil
 }
 
 // Gets the current document revision.
@@ -77,9 +137,8 @@ func (doc *Document) Text() string {
 
 // Unsubscribes a connection from the document.
 func (doc *Document) Unsubscribe(connId string, subId int) {
-	// TODO: drop document (and terminate goroutine) when subscriptions reach zero.
-	delete(doc.subs, subKey(connId, subId))
-	log.Printf("[%d] unsub doc %s: %s/%d", len(doc.subs), doc.id, connId, subId)
+	master.unsubs <- unsubReq{doc: doc, connId: connId, subId: subId}
+	log.Printf("[%d] unsub doc %s: %s/%d", len(doc.subscriptions), doc.id, connId, subId)
 }
 
 // Revise a document. Its goroutine will ensure that the resulting ops
@@ -88,19 +147,32 @@ func (doc *Document) Revise(connId string, subId int, rev int, ops ot.Ops) {
 	doc.updates <- docUpdate{connId: connId, subId: subId, rev: rev, ops: ops}
 }
 
-// Document's goroutine. Takes care of applying ops and notifying subscribers.
-func (doc *Document) loop() {
+// Main loop for each open Document. Maintains access to subscriptions via the subs/unsubs channels.
+func (doc *Document) run(done chan<- *Document) {
 	for {
-		update := <-doc.updates
-		outops, err := doc.srv.Recv(update.rev, update.ops)
-		if err != nil {
-			log.Printf("error applying ops to doc %s: %s", doc.id, err)
-			return
+		select {
+		case req := <-doc.subs:
+			doc.subscriptions[subKey(req.connId, req.subId)] = req.sock
+			log.Printf("[%d] sub doc %s: %s", len(doc.subs), req.docId, req.connId)
+
+		case req := <-doc.unsubs:
+			delete(doc.subscriptions, subKey(req.connId, req.subId))
+			if len(doc.subscriptions) == 0 {
+				log.Printf("dropping doc %s: %s", doc.id, req.connId)
+				done <- doc
+				return
+			}
+			log.Printf("[%d] unsub doc %s: %s", len(doc.subs), doc.id, req.connId)
+
+		case update := <-doc.updates:
+			outops, err := doc.srv.Recv(update.rev, update.ops)
+			if err != nil {
+				log.Printf("error applying ops to doc %s: %s", doc.id, err)
+				return
+			}
+			doc.broadcast(update, outops)
+			doc.persist() // TODO: Persist less aggressively.
 		}
-
-		doc.broadcast(update, outops)
-
-		doc.persist() // TODO: Persist less aggressively.
 	}
 }
 
@@ -117,7 +189,7 @@ func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 		Ops:        ops,
 	}
 	socks := make(map[sockjs.Session][]int)
-	for key, sock := range doc.subs {
+	for key, sock := range doc.subscriptions {
 		socks[sock] = append(socks[sock], connIdFromKey(key))
 	}
 	for sock, _ := range socks {
