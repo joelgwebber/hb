@@ -1,7 +1,6 @@
 package search
 
 import (
-	"fmt"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
 	"net/url"
@@ -121,7 +120,7 @@ func (s *Search) Unsubscribe(connId string) {
 
 func (s *Search) update() {
 	// TODO: Basic optimization: Don't requery unless *something* has changed.
-	total, results, err := solr.GetDocs("onde", url.Values{"q": []string{fmt.Sprintf("body:%s", s.query)}})
+	total, results, err := solr.GetDocs("onde", url.Values{"q": []string{s.query}})
 	if err != nil {
 		log.Printf("error retrieving docs for search %s : %s", s.query, err)
 	}

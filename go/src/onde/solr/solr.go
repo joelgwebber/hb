@@ -1,38 +1,38 @@
 package solr
 
 import (
-	"net/url"
-	"io"
-	"fmt"
-	"net/http"
 	"bytes"
-	"strings"
-	"log"
-	"time"
-	"errors"
-	"os"
-	"onde/cherr"
-	"path"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"onde/cherr"
+	"os"
+	"path"
+	"strings"
+	"time"
 )
 
 const (
 	docVersion = 0
-	solrUrl = "http://localhost:8983/solr"
+	solrUrl    = "http://localhost:8983/solr"
 
-	SolrAdminHandler = "admin"
-	SolrAdminCoresHandler = "admin/cores"
+	SolrAdminHandler         = "admin"
+	SolrAdminCoresHandler    = "admin/cores"
 	SolrFieldAnalysisHandler = "analysis/field"
-	SolrLukeHandler = "admin/luke"
-	SolrSelectHandler = "select"
-	SolrTermsHandler = "terms"
-	SolrUpdateHandler = "update"
+	SolrLukeHandler          = "admin/luke"
+	SolrSelectHandler        = "select"
+	SolrTermsHandler         = "terms"
+	SolrUpdateHandler        = "update"
 )
 
 // Performs a soft commit on Solr, ensuring that the latest updates are availabe to queries.
 func SoftCommit(orgId string) error {
 	if _, err := get(orgId, SolrUpdateHandler, url.Values{
-			"softCommit":    []string{"true"},
+		"softCommit": []string{"true"},
 	}); err != nil {
 		return cherr.Errorf(err, "failed to soft-commit Solr for org %s", orgId)
 	}
@@ -79,8 +79,8 @@ func CoreExists(orgId string) (bool, error) {
 
 func GetDoc(orgId, key string) (JsonObject, error) {
 	params := url.Values{
-		"q":             []string{fmt.Sprintf("id:%s", key)},
-		"rows":          []string{"1"},
+		"q":    []string{fmt.Sprintf("id:%s", key)},
+		"rows": []string{"1"},
 	}
 	count, docs, err := GetDocs(orgId, params)
 	if err != nil {
@@ -115,10 +115,15 @@ func GetDocs(orgId string, params url.Values) (total int, results []JsonObject, 
 }
 
 func UpdateDoc(orgId, docId, body string, forceCommit bool) error {
+	// Build the solr document.
 	doc := make(map[string]interface{})
 	doc["_version_"] = docVersion
 	doc["id"] = docId
-	doc["body"] = body
+	props, _ := extractProperties(body)
+	for k, v := range props {
+		doc["prop_"+k] = v
+	}
+	doc["body"] = body // TODO: consider indexing only the extracted body
 
 	buf := &bytes.Buffer{}
 	buf.WriteString(`{"add":{"doc":`)
@@ -136,6 +141,67 @@ func UpdateDoc(orgId, docId, body string, forceCommit bool) error {
 	_, err = post(orgId, SolrUpdateHandler, params, buf.Bytes(), "application/json")
 	// TODO: Check result.
 	return err // could be nil
+}
+
+// Extracts properties from the beginning of the document. They must be of the form:
+// {
+// prop0:val0
+// prop1:val1
+// ...
+// }
+// [body text]
+//
+// Properties and values have leading/trailing whitespace trimmed, and one trailing
+// CR after the closing brace will be ignored.
+func extractProperties(body string) (props map[string]string, newBody string) {
+	props = make(map[string]string)
+
+	var i int
+	var ch rune
+	var keyStart, valueStart int
+	var key string
+	state := 0
+
+loop:
+	for i, ch = range body {
+		switch state {
+		case 0: // start
+			if ch == '{' {
+				state = 1
+				keyStart = i + 1
+			}
+
+		case 1: // key
+			switch ch {
+			case ':':
+				key = strings.TrimSpace(body[keyStart:i])
+				valueStart = i + 1
+				state = 2
+			case '}':
+				break loop
+			}
+
+		case 2: // value
+			switch ch {
+			case '\n':
+				value := strings.TrimSpace(body[valueStart:i])
+				props[key] = value
+				state = 1
+				keyStart = i + 1
+			case '}':
+				break loop
+			}
+		}
+	}
+
+	// Optionally trim trailing CR before body.
+	i++
+	if i < len(body)-1 && body[i] == '\n' {
+		i++
+	}
+
+	newBody = body[i:]
+	return
 }
 
 func solrHome() string {
@@ -256,7 +322,7 @@ func doRawReader(baseUrl string, params url.Values, body []byte, bodyType string
 			log.Printf("failed %s: %s", reqDesc, err)
 			return nil, err
 		}
-//		log.Printf("%s", reqDesc)
+		//		log.Printf("%s", reqDesc)
 		break
 	}
 

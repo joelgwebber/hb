@@ -176,10 +176,6 @@ func (doc *Document) run(done chan<- *Document) {
 	}
 }
 
-func (doc *Document) persist() {
-	solr.UpdateDoc("onde", doc.id, string(*doc.srv.Doc), true)
-}
-
 func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 	rsp := ReviseRsp{
 		OrigConnId: update.connId,
@@ -196,6 +192,10 @@ func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 		rsp.SubIds = socks[sock]
 		rsp.Send(sock)
 	}
+}
+
+func (doc *Document) persist() {
+	solr.UpdateDoc("onde", doc.id, string(*doc.srv.Doc), true)
 }
 
 func subKey(connId string, subId int) string {

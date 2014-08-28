@@ -2,11 +2,11 @@ package solr
 
 import (
 	"fmt"
-	"net/http"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
-	"io"
 	"strings"
 )
 

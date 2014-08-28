@@ -13,7 +13,7 @@ const (
 )
 
 type ChainedError interface {
-error
+	error
 	Cause() error
 	Extra() interface{}
 	Extras() []ChainedError

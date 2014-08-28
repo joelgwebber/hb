@@ -1,11 +1,11 @@
 package solr
 
 import (
-	"strings"
-	"io"
 	"encoding/json"
-	"strconv"
 	"errors"
+	"io"
+	"strconv"
+	"strings"
 )
 
 type JsonObject map[string]interface{}
@@ -52,7 +52,8 @@ func (js JsonObject) GetArray(key string) []interface{} {
 
 func ParseJson(r io.Reader) (JsonObject, error) {
 	var js JsonObject
-	err := json.NewDecoder(r).Decode(&js); if err != nil {
+	err := json.NewDecoder(r).Decode(&js)
+	if err != nil {
 		return nil, err
 	}
 	return js, nil
