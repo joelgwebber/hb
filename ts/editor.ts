@@ -11,6 +11,7 @@
 
 module onde {
 
+  // Component that binds an Ace-based text editor to a Document.
   export class Editor {
     private _elem: HTMLElement;
     private _ace: Ace.Editor;
@@ -55,10 +56,10 @@ module onde {
         this._merge = false;
       }
 
-      this._doc = new Document(docId, () => {
+      this._doc = new Document(docId, (body: string) => {
         // _merge guards against op feedback loops.
         this._merge = true;
-        this._acedoc.setValue(this._doc.body());
+        this._acedoc.setValue(body);
         this._merge = false;
       }, (ops) => {
         // _merge guards against op feedback loops.

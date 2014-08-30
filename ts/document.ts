@@ -16,19 +16,17 @@ module onde {
     private _wait: any[] = null;
     private _buf: any[] = null;
     private _sub: connection.DocSubscription;
-    private _body: string;
     private _rev = -1;
 
-    constructor(private _docId: string, ready: () => void, private _onchange: (ops: any[]) => void) {
+    constructor(private _docId: string, ready: (body: string) => void, private _onchange: (ops: any[]) => void) {
       if (this._sub) {
         this.unsubscribe();
       }
 
       this._sub = connection.subscribeDoc(_docId,
           (rsp: SubscribeDocRsp) => {
-            this._body = rsp.Body;
             this._rev = rsp.Rev;
-            ready();
+            ready(rsp.Body);
           },
           (rsp: ReviseRsp) => { this.recvOps(rsp.Ops); },
           (rsp: ReviseRsp) => { this.ackOps(rsp.Ops); }
@@ -37,10 +35,6 @@ module onde {
 
     revision(): number {
       return this._rev;
-    }
-
-    body(): string {
-      return this._body;
     }
 
     unsubscribe() {
@@ -82,7 +76,7 @@ module onde {
         ops = res[0];
         this._buf = res[1];
       }
-      this.applyOps(ops);
+      this._onchange(ops);
       ++this._rev;
       this._status = "received";
     }
@@ -100,11 +94,6 @@ module onde {
         this._rev = rev;
         this._status = "";
       }
-    }
-
-    private applyOps(ops: any[]) {
-      // TODO: Apply ops to this._body.
-      this._onchange(ops);
     }
   }
 }
