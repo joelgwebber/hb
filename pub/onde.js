@@ -535,68 +535,60 @@ else
 /// <reference path="lib/ace.d.ts" />
 var onde;
 (function (onde) {
-    var Editor = (function () {
-        function Editor() {
+    // TODO: separate properties from body.
+    var Document = (function () {
+        function Document(_docId, ready, _onchange) {
             var _this = this;
+            this._docId = _docId;
+            this._onchange = _onchange;
             this._status = "";
-            this._merge = false;
             this._wait = null;
             this._buf = null;
             this._rev = -1;
-            this._elem = document.createElement("div");
-            this._elem.className = "Editor";
-
-            this._ace = ace.edit(this._elem);
-            this._session = this._ace.getSession();
-            this._acedoc = this._session.getDocument();
-            this._ace.setTheme("ace/theme/textmate");
-            this._ace.setHighlightActiveLine(false);
-            this._ace.setShowPrintMargin(false);
-            this._session.setMode("ace/mode/markdown");
-
-            this._acedoc.on('change', function (e) {
-                if (_this._rev == -1 || _this._merge) {
-                    // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
-                    return;
-                }
-
-                var delta = e.data;
-                var ops = deltaToOps(documentLines(_this._acedoc), delta);
-                _this.onChange(ops);
-            });
-        }
-        Editor.prototype.elem = function () {
-            return this._elem;
-        };
-
-        Editor.prototype.loadDoc = function (docId) {
-            var _this = this;
             if (this._sub) {
                 this.unsubscribe();
             }
 
-            this._sub = onde.connection.subscribeDoc(docId, function (rsp) {
-                _this._acedoc.setValue(rsp.Body);
+            this._sub = onde.connection.subscribeDoc(_docId, function (rsp) {
+                _this._body = rsp.Body;
                 _this._rev = rsp.Rev;
+                ready();
             }, function (rsp) {
                 _this.recvOps(rsp.Ops);
             }, function (rsp) {
                 _this.ackOps(rsp.Ops);
             });
+        }
+        Document.prototype.revision = function () {
+            return this._rev;
         };
 
-        Editor.prototype.unsubscribe = function () {
-            // TODO: Check for outgoing ops and make sure they go to the server
-            // (may need to hoist op management out to a detachable class).
+        Document.prototype.body = function () {
+            return this._body;
+        };
+
+        Document.prototype.unsubscribe = function () {
+            // TODO: Check for outgoing ops and make sure they go to the server.
             this._status = "";
-            this._merge = false;
             this._wait = null;
             this._buf = null;
             this._rev = -1;
             this._sub.unsubscribe();
         };
 
-        Editor.prototype.recvOps = function (ops) {
+        Document.prototype.revise = function (ops) {
+            if (this._buf !== null) {
+                this._buf = ot.compose(this._buf, ops);
+            } else if (this._wait !== null) {
+                this._buf = ops;
+            } else {
+                this._wait = ops;
+                this._status = "waiting";
+                this._sub.revise(this._rev, ops);
+            }
+        };
+
+        Document.prototype.recvOps = function (ops) {
             var res = null;
             if (this._wait !== null) {
                 res = ot.transform(ops, this._wait);
@@ -614,14 +606,12 @@ var onde;
                 ops = res[0];
                 this._buf = res[1];
             }
-            this._merge = true;
-            applyOps(this._acedoc, ops);
-            this._merge = false;
+            this.applyOps(ops);
             ++this._rev;
             this._status = "received";
         };
 
-        Editor.prototype.ackOps = function (ops) {
+        Document.prototype.ackOps = function (ops) {
             var rev = this._rev + 1;
             if (this._buf !== null) {
                 this._wait = this._buf;
@@ -636,16 +626,74 @@ var onde;
             }
         };
 
-        Editor.prototype.onChange = function (ops) {
-            if (this._buf !== null) {
-                this._buf = ot.compose(this._buf, ops);
-            } else if (this._wait !== null) {
-                this._buf = ops;
-            } else {
-                this._wait = ops;
-                this._status = "waiting";
-                this._sub.revise(this._rev, ops);
+        Document.prototype.applyOps = function (ops) {
+            // TODO: Apply ops to this._body.
+            this._onchange(ops);
+        };
+        return Document;
+    })();
+    onde.Document = Document;
+})(onde || (onde = {}));
+// Some parts adapted from github.com/mb0/lab:
+// Copyright 2013 Martin Schnabel. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+/// <reference path="ot.ts" />
+/// <reference path="connection.ts" />
+/// <reference path="document.ts" />
+/// <reference path="lib/ace.d.ts" />
+var onde;
+(function (onde) {
+    var Editor = (function () {
+        function Editor() {
+            var _this = this;
+            this._merge = false;
+            this._elem = document.createElement("div");
+            this._elem.className = "Editor";
+
+            this._ace = ace.edit(this._elem);
+            this._session = this._ace.getSession();
+            this._acedoc = this._session.getDocument();
+            this._ace.setTheme("ace/theme/textmate");
+            this._ace.setHighlightActiveLine(false);
+            this._ace.setShowPrintMargin(false);
+            this._session.setMode("ace/mode/markdown");
+
+            this._acedoc.on('change', function (e) {
+                if (_this._doc.revision() == -1 || _this._merge) {
+                    // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
+                    return;
+                }
+
+                var delta = e.data;
+                var ops = deltaToOps(documentLines(_this._acedoc), delta);
+                _this._doc.revise(ops);
+            });
+        }
+        Editor.prototype.elem = function () {
+            return this._elem;
+        };
+
+        Editor.prototype.loadDoc = function (docId) {
+            var _this = this;
+            if (this._doc) {
+                // Unsubscribe any existing document. It will ensure that outstanding ops are drained.
+                this._doc.unsubscribe();
+                this._merge = false;
             }
+
+            this._doc = new onde.Document(docId, function () {
+                // _merge guards against op feedback loops.
+                _this._merge = true;
+                _this._acedoc.setValue(_this._doc.body());
+                _this._merge = false;
+            }, function (ops) {
+                // _merge guards against op feedback loops.
+                _this._merge = true;
+                applyOps(_this._acedoc, ops);
+                _this._merge = false;
+            });
         };
         return Editor;
     })();

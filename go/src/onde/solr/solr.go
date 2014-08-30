@@ -200,7 +200,9 @@ loop:
 		i++
 	}
 
-	newBody = body[i:]
+	if i < len(body) {
+		newBody = body[i:]
+	}
 	return
 }
 

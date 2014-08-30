@@ -6,21 +6,18 @@
 
 /// <reference path="ot.ts" />
 /// <reference path="connection.ts" />
+/// <reference path="document.ts" />
 /// <reference path="lib/ace.d.ts" />
 
 module onde {
 
   export class Editor {
-    private _status = "";
-    private _merge = false;
-    private _wait: any[] = null;
-    private _buf: any[] = null;
     private _elem: HTMLElement;
     private _ace: Ace.Editor;
     private _session: Ace.IEditSession;
     private _acedoc: Ace.Document;
-    private _sub: connection.DocSubscription;
-    private _rev = -1;
+    private _doc: Document;
+    private _merge = false;
 
     constructor() {
       this._elem = document.createElement("div");
@@ -35,14 +32,15 @@ module onde {
       this._session.setMode("ace/mode/markdown");
 
       this._acedoc.on('change', (e) => {
-        if (this._rev == -1 || this._merge) {
+        // TODO: Why am I checking revision==-1 again?
+        if (this._doc.revision() == -1 || this._merge) {
           // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
           return;
         }
 
         var delta = <Ace.Delta>e.data;
         var ops = deltaToOps(documentLines(this._acedoc), delta);
-        this.onChange(ops);
+        this._doc.revise(ops);
       });
     }
 
@@ -51,81 +49,23 @@ module onde {
     }
 
     loadDoc(docId: string) {
-      if (this._sub) {
-        this.unsubscribe();
+      if (this._doc) {
+        // Unsubscribe any existing document. It will ensure that outstanding ops are drained.
+        this._doc.unsubscribe();
+        this._merge = false;
       }
 
-      this._sub = connection.subscribeDoc(docId,
-          (rsp: SubscribeDocRsp) => {
-            this._acedoc.setValue(rsp.Body);
-            this._rev = rsp.Rev;
-          },
-          (rsp: ReviseRsp) => { this.recvOps(rsp.Ops); },
-          (rsp: ReviseRsp) => { this.ackOps(rsp.Ops); }
-      );
-    }
-
-    private unsubscribe() {
-      // TODO: Check for outgoing ops and make sure they go to the server
-      // (may need to hoist op management out to a detachable class).
-      this._status = "";
-      this._merge = false;
-      this._wait = null;
-      this._buf = null;
-      this._rev = -1;
-      this._sub.unsubscribe();
-    }
-
-    private recvOps(ops: any[]) {
-      var res: any[] = null;
-      if (this._wait !== null) {
-        res = ot.transform(ops, this._wait);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._wait = res[1];
-      }
-      if (this._buf !== null) {
-        res = ot.transform(ops, this._buf);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._buf = res[1];
-      }
-      this._merge = true;
-      applyOps(this._acedoc, ops);
-      this._merge = false;
-      ++this._rev;
-      this._status = "received";
-    }
-
-    private ackOps(ops: any[]) {
-      var rev = this._rev + 1;
-      if (this._buf !== null) {
-        this._wait = this._buf;
-        this._buf = null;
-        this._rev = rev;
-        this._status = "waiting";
-        this._sub.revise(rev, this._wait);
-      } else if (this._wait !== null) {
-        this._wait = null;
-        this._rev = rev;
-        this._status = "";
-      }
-    }
-
-    private onChange(ops: any[]) {
-      if (this._buf !== null) {
-        this._buf = ot.compose(this._buf, ops);
-      } else if (this._wait !== null) {
-        this._buf = ops;
-      } else {
-        this._wait = ops;
-        this._status = "waiting";
-        this._sub.revise(this._rev, ops);
-      }
+      this._doc = new Document(docId, () => {
+        // _merge guards against op feedback loops.
+        this._merge = true;
+        this._acedoc.setValue(this._doc.body());
+        this._merge = false;
+      }, (ops) => {
+        // _merge guards against op feedback loops.
+        this._merge = true;
+        applyOps(this._acedoc, ops);
+        this._merge = false;
+      });
     }
   }
 
