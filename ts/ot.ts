@@ -20,7 +20,24 @@ module ot {
   //   N > 0: Insert string S
   //   N == 0: Noop
 
-  // javascript characters use UCS-2 encoding. we need utf-8 byte counts
+  // Calculates the number of ucs2 values required to encode 'len' utf8 bytes starting at 'pos' in 's'.
+  export function ucs2len(str: string, pos: number, len: number): number {
+    var out = 0;
+    while (len > 0) {
+      var c = str.charCodeAt(pos++);
+      if (c > 0x10000) len -= 4;
+      else if (c > 0x800) len -= 3;
+      else if (c > 0x80) len -= 2;
+      else len -= 1;
+      out++;
+    }
+    if (len != 0) {
+      throw "misaligned byte length"
+    }
+    return out;
+  }
+
+  // Calculates the length of 'str' in utf8 bytes.
   export function utf8len(str: string): number {
     var n = 0;
     for (var i = 0; i < str.length; i++) {

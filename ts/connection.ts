@@ -6,6 +6,8 @@
 // - Track acknowledged requests.
 module onde.connection {
 
+  var LOG_MESSAGES = false;
+
   export class DocSubscription {
     _subId: number;
 
@@ -196,13 +198,17 @@ module onde.connection {
   }
 
   function send(req: Req) {
-    log(req);
+    if (LOG_MESSAGES) {
+      log(req);
+    }
     sock.send(JSON.stringify(req));
   }
 
   function onMessage(e: SJSMessageEvent) {
     var rsp = <Rsp>JSON.parse(e.data);
-    log(rsp);
+    if (LOG_MESSAGES) {
+      log(rsp);
+    }
     switch (rsp.Type) {
       case MsgLogin:
         handleLogin(rsp.Login);

@@ -52,7 +52,7 @@ module onde {
     loadDoc(docId: string) {
       if (this._doc) {
         // Unsubscribe any existing document. It will ensure that outstanding ops are drained.
-        this._doc.unsubscribe();
+        this._doc.release();
         this._merge = false;
       }
 
@@ -86,8 +86,9 @@ module onde {
         else if (c > 0x80) off -= 2;
         else off -= 1;
       }
-      if (--off < 0 || i == lastRow - 1)
+      if (--off < 0 || i == lastRow - 1) {
         return {row: i, column: j};
+      }
     }
     return {row: i - 1, column: j};
   }
