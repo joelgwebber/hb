@@ -11,18 +11,159 @@
 
 module onde {
 
+  // Simple editor that handles <input type=text> and <textarea> elements.
+  // It's generates mutations using a naïve O(N) diff algorithm, and is thus not
+  // suitable for large amounts of text.
+  //
+  // Adapted from github.com/share/ShareJS. See original license in LICENSES file.
+  export class TextInputEditor {
+    private _elem: HTMLInputElement;
+    private _binding: Binding;
+    private _prevValue = "";
+    private _merge: boolean;
+
+    constructor() {
+      this._elem = <HTMLInputElement>document.createElement("input");
+
+      var eventNames = ['textInput', 'keydown', 'keyup', 'select', 'cut', 'paste'];
+      for (var i = 0; i < eventNames.length; i++) {
+        this._elem.addEventListener(eventNames[i], (e) => { this.genOp(e); }, false);
+      }
+    }
+
+    elem(): HTMLInputElement {
+      return this._elem;
+    }
+
+    bind(doc: Document, prop: string) {
+      // Release any old binding.
+      if (this._binding) {
+        this._binding.release();
+      }
+
+      // _merge guards against op feedback loops.
+      this._binding = doc.bind(prop, (value) => {
+        this._merge = true;
+        this._elem.value = this._prevValue = value;
+        this._merge = false;
+      }, (ops) => {
+        this._merge = true;
+        this.applyOps(ops);
+        this._merge = false;
+      })
+    }
+
+    private genOp(e: Event) {
+      setTimeout(() => {
+        if (this._elem.value !== this._prevValue) {
+          var ops = this.makeChange(this._prevValue, this._elem.value.replace(/\r\n/g, '\n'));
+          if (ops) {
+            this._binding.revise(ops);
+          }
+          this._prevValue = this._elem.value;
+        }
+      }, 0);
+    }
+
+    // Replace the content of the text area with newText, and transform the
+    // current cursor by the specified function.
+    private replaceText(newText, transformCursor) {
+      if (transformCursor) {
+        var newSelection = [transformCursor(this._elem.selectionStart), transformCursor(this._elem.selectionEnd)];
+      }
+
+      // Fixate the window's scroll while we set the element's value. Otherwise
+      // the browser scrolls to the element.
+      var scrollTop = this._elem.scrollTop;
+      this._elem.value = newText;
+      this._prevValue = this._elem.value; // Not done on one line so the browser can do newline conversion.
+      if (this._elem.scrollTop !== scrollTop) this._elem.scrollTop = scrollTop;
+
+      // Setting the selection moves the cursor. We'll just have to let your
+      // cursor drift if the element isn't active, though usually users don't
+      // care.
+      if (newSelection && window.document.activeElement === this._elem) {
+        this._elem.selectionStart = newSelection[0];
+        this._elem.selectionEnd = newSelection[1];
+      }
+    }
+
+    private applyOps(ops: any[]) {
+      var pos = 0;
+      for (var i = 0; i < ops.length; ++i) {
+        var op = ops[i];
+        if (typeof op == "string") {
+          this.onInsert(pos, op);
+        } else if (op < 0) {
+          this.onRemove(pos, -op);
+        } else {
+          pos += op;
+        }
+      }
+    }
+
+    private onInsert(pos, text) {
+      var transformCursor = function (cursor) {
+        return pos < cursor ? cursor + text.length : cursor;
+      };
+
+      // Remove any window-style newline characters. Windows inserts these, and
+      // they mess up the generated diff.
+      var prev = this._elem.value.replace(/\r\n/g, '\n');
+      this.replaceText(prev.slice(0, pos) + text + prev.slice(pos), transformCursor);
+    }
+
+    private onRemove(pos, length) {
+      var transformCursor = function (cursor) {
+        // If the cursor is inside the deleted region, we only want to move back to the start
+        // of the region. Hence the Math.min.
+        return pos < cursor ? cursor - Math.min(length, cursor - pos) : cursor;
+      };
+
+      var prev = this._elem.value.replace(/\r\n/g, '\n');
+      this.replaceText(prev.slice(0, pos) + prev.slice(pos + length), transformCursor);
+    }
+
+    private makeChange(oldval: string, newval: string): any[] {
+      if (oldval === newval) {
+        return null;
+      }
+
+      var commonStart = 0;
+      while (oldval.charAt(commonStart) === newval.charAt(commonStart)) {
+        commonStart++;
+      }
+
+      var commonEnd = 0;
+      while ((oldval.charAt(oldval.length - 1 - commonEnd) === newval.charAt(newval.length - 1 - commonEnd)) &&
+          (commonEnd + commonStart < oldval.length && commonEnd + commonStart < newval.length)) {
+        commonEnd++;
+      }
+
+      var ret: any[] = [commonStart];
+      if (oldval.length !== commonStart + commonEnd) {
+        ret.push(-(oldval.length - commonStart - commonEnd));
+      }
+      if (newval.length !== commonStart + commonEnd) {
+        ret.push(newval.slice(commonStart, newval.length - commonEnd));
+      }
+      ret.push(commonEnd);
+      return ret;
+    }
+  }
+
   // Component that binds an Ace-based text editor to a Document.
-  export class Editor {
+  export class AceEditor {
     private _elem: HTMLElement;
     private _ace: Ace.Editor;
     private _session: Ace.IEditSession;
     private _acedoc: Ace.Document;
-    private _doc: Document;
     private _merge = false;
+    private _binding: Binding;
 
     constructor() {
       this._elem = document.createElement("div");
-      this._elem.className = "Editor";
+      this._elem.className = "AceEditor";
 
       this._ace = ace.edit(this._elem);
       this._session = this._ace.getSession();
@@ -33,15 +174,14 @@ module onde {
       this._session.setMode("ace/mode/markdown");
 
       this._acedoc.on('change', (e) => {
-        // TODO: Why am I checking revision==-1 again?
-        if (this._doc.revision() == -1 || this._merge) {
+        if (this._merge) {
           // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
           return;
         }
 
         var delta = <Ace.Delta>e.data;
         var ops = deltaToOps(documentLines(this._acedoc), delta);
-        this._doc.revise(ops);
+        this._binding.revise(ops);
       });
     }
 
@@ -49,24 +189,22 @@ module onde {
       return this._elem;
     }
 
-    loadDoc(docId: string) {
-      if (this._doc) {
-        // Unsubscribe any existing document. It will ensure that outstanding ops are drained.
-        this._doc.release();
-        this._merge = false;
+    bind(doc: Document, prop: string) {
+      // Release any old binding.
+      if (this._binding) {
+        this._binding.release();
       }
 
-      this._doc = new Document(docId, (body: string) => {
-        // _merge guards against op feedback loops.
+      // _merge guards against op feedback loops.
+      this._binding = doc.bind(prop, (value) => {
         this._merge = true;
-        this._acedoc.setValue(body);
+        this._acedoc.setValue(value);
         this._merge = false;
       }, (ops) => {
-        // _merge guards against op feedback loops.
         this._merge = true;
         applyOps(this._acedoc, ops);
         this._merge = false;
-      });
+      })
     }
   }
 

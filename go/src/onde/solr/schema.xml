@@ -8,8 +8,7 @@
   <fields>
     <field name="_version_" type="int64"/>
     <field name="id" type="string"/>
-    <field name="body" type="text_general"/>
-    <dynamicField name="prop_*" type="string"/>
+    <dynamicField name="prop_*" type="text_general"/>
   </fields>
 
   <types>

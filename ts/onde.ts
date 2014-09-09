@@ -7,16 +7,31 @@ module onde {
   var DEBUG = true;
 
   var searchBox: SearchBox;
-  var editor: Editor;
+  var doc: Document;
+  var titleEditor: TextInputEditor;
+  var aceEditor: AceEditor;
   var statusElem;
   var createElem;
+
+  function edit(docId: string) {
+    if (doc) {
+      doc.release();
+    }
+    doc = new Document(docId);
+    aceEditor.bind(doc, "body");
+    titleEditor.bind(doc, "title");
+  }
 
   export function main() {
     searchBox = new SearchBox();
     document.body.appendChild(searchBox.elem());
 
-    editor = new Editor();
-    document.body.appendChild(editor.elem());
+    aceEditor = new AceEditor();
+    document.body.appendChild(aceEditor.elem());
+
+    titleEditor = new TextInputEditor();
+    titleEditor.elem().className = "TitleEditor";
+    document.body.appendChild(titleEditor.elem());
 
     statusElem = document.createElement("div");
     statusElem.className = "Status";
@@ -27,13 +42,11 @@ module onde {
     createElem.textContent = "create";
     document.body.appendChild(createElem);
 
-    searchBox.onSelectDoc = (docId) => {
-      editor.loadDoc(docId);
-    };
+    searchBox.onSelectDoc = (docId) => { edit(docId); };
 
     createElem.onclick = (e) => {
       connection.createDoc((rsp) => {
-        editor.loadDoc(rsp.DocId);
+        edit(rsp.DocId);
       });
     };
 

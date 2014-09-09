@@ -10,6 +10,13 @@
 
 module onde {
 
+  export interface Binding {
+    onReady: (value: string) => void;
+    onChange: (ops: any[]) => void;
+    revise: (ops: any[]) => void;
+    release: () => void;
+  }
+
   // Client-side document abstraction. Maintains subscription to server-side document, along with
   // OT bookkeeping. Also maintains the property list at the beginning of the document, hiding it
   // from users so they don't see it as part of the document body.
@@ -18,32 +25,56 @@ module onde {
   // be called when discarding an instance (otherwise it will leak subscriptions until the connection
   // is lost).
   export class Document {
-    private _status = "";
-    private _wait: any[] = null;
-    private _buf: any[] = null;
+//    private _status = "";
+    private _wait: {[prop: string]: any[]} = {};
+    private _buf: {[prop: string]: any[]} = {};
+    private _props: {[prop: string]: string} = {};
     private _sub: connection.DocSubscription;
-
-    private _body = "";
     private _rev = -1;
+    private _bindings: {[prop: string]: Binding} = {};
 
-    private _props: {key: string; value: string;}[] = [];
-    private _bodyOfs = 0;
-
-    constructor(private _docId: string, ready: (body: string) => void, private _onchange: (ops: any[]) => void) {
+    constructor(private _docId: string) {
       this._sub = connection.subscribeDoc(_docId,
           (rsp: SubscribeDocRsp) => {
             this._rev = rsp.Rev;
-            this._body = rsp.Body;
-            this.parseProperties();
-            ready(rsp.Body);
+            this._props = rsp.Props;
+            this.subscribed();
           },
           (rsp: ReviseRsp) => {
-            this.recvOps(rsp.Ops);
+            this.recvOps(rsp.Change);
           },
           (rsp: ReviseRsp) => {
-            this.ackOps(rsp.Ops);
+            this.ackOps(rsp.Change);
           }
       );
+    }
+
+    bind(prop: string, onReady: (value: string) => void, onChange: (ops: any[]) => void): Binding {
+      if (prop in this._bindings) {
+        throw "multiple bindings to " + prop;
+      }
+
+      var binding = {
+        onReady: onReady,
+        onChange: onChange,
+        revise: (ops: any[]) => {
+          this.revise({ Prop: prop, Ops: ops });
+        },
+        release: () => {
+          binding.revise = null;
+          binding.release = null;
+          delete this._bindings[prop];
+        }
+      };
+      this._bindings[prop] = binding;
+
+      // If the subscription's already ready, call onReady() immediately.
+      if (this._rev >= 0) {
+        onReady(this.prop(prop));
+        binding.onReady = null;
+      }
+
+      return binding;
     }
 
     // The current document revision. Any mutation to the document will bump this value.
@@ -51,151 +82,110 @@ module onde {
       return this._rev;
     }
 
-    body(): string {
-      return this._body;
+    // The document's given property, by name.
+    // Non-existent properties return "". Revisions automatically bring new properties into existence.
+    prop(key: string): string {
+      if (!(key in this._props)) {
+        return "";
+      }
+      return this._props[key];
     }
 
     // Must be called when done with a document instance.
     release() {
       // TODO: Check for outgoing ops and make sure they go to the server.
-      this._status = "";
-      this._wait = null;
-      this._buf = null;
+//      this._status = "";
+      this._wait = {};
+      this._buf = {};
       this._rev = -1;
       this._sub.unsubscribe();
     }
 
+    private subscribed() {
+      // Call back into all waiting bindings to let them know the subscription is ready.
+      for (var prop in this._bindings) {
+        var binding = this._bindings[prop];
+        if (binding.onReady) {
+          binding.onReady(this.prop(prop));
+          binding.onReady = null;
+        }
+      }
+    }
+
     // Revise this document with OT ops (as defined in ot.ts).
-    revise(ops: any[]) {
-      if (this._buf !== null) {
-        this._buf = ot.compose(this._buf, ops);
-      } else if (this._wait !== null) {
-        this._buf = ops;
+    private revise(change: Change) {
+      if (this._buf[change.Prop]) {
+        this._buf[change.Prop] = ot.compose(this._buf[change.Prop], change.Ops);
+      } else if (this._wait[change.Prop]) {
+        this._buf[change.Prop] = change.Ops;
       } else {
-        this._wait = ops;
-        this._status = "waiting";
-        this._sub.revise(this._rev, ops);
+        this._wait[change.Prop] = change.Ops;
+//        this._status = "waiting";
+        this._sub.revise(this._rev, change);
       }
     }
 
-    private recvOps(ops: any[]) {
+    private recvOps(change: Change) {
       var res: any[] = null;
-      if (this._wait !== null) {
-        res = ot.transform(ops, this._wait);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._wait = res[1];
+      if (this._wait[change.Prop]) {
+        res = ot.transform(change.Ops, this._wait[change.Prop]);
+        change.Ops = res[0];
+        this._wait[change.Prop] = res[1];
       }
-      if (this._buf !== null) {
-        res = ot.transform(ops, this._buf);
-        if (res[2] !== null) {
-          return res[2];
-        }
-        ops = res[0];
-        this._buf = res[1];
+      if (this._buf[change.Prop]) {
+        res = ot.transform(change.Ops, this._buf[change.Prop]);
+        change.Ops = res[0];
+        this._buf[change.Prop] = res[1];
       }
 
-      this.applyOps(ops);
+      this.apply(change);
       ++this._rev;
-      this._status = "received";
+//      this._status = "received";
     }
 
-    private ackOps(ops: any[]) {
-      this.updateBody(ops);
+    private ackOps(change: Change) {
+      this.updateProp(change);
       ++this._rev;
 
-      if (this._buf !== null) {
-        this._wait = this._buf;
-        this._buf = null;
-        this._status = "waiting";
-        this._sub.revise(this._rev, this._wait);
-      } else if (this._wait !== null) {
-        this._wait = null;
-        this._status = "";
+      if (this._buf[change.Prop]) {
+        this._wait[change.Prop] = this._buf[change.Prop];
+        this._buf = {};
+//        this._status = "waiting";
+        this._sub.revise(this._rev, {
+          Prop: change.Prop,
+          Ops: this._wait[change.Prop]
+        });
+      } else if (this._wait[change.Prop]) {
+        this._wait[change.Prop] = null;
+//        this._status = "";
       }
     }
 
-    private applyOps(ops: any[]) {
-      this.updateBody(ops);
-      this._onchange(ops);
+    private apply(change: Change) {
+      this.updateProp(change);
+      var binding = this._bindings[change.Prop];
+      if (binding) {
+        binding.onChange(change.Ops);
+      }
     }
 
-    private updateBody(ops: any[]) {
+    private updateProp(change: Change) {
       var pos = 0;
-      var body = "";
-      for (var i = 0; i < ops.length; ++i) {
-        var op = ops[i];
+      var text = "";
+      for (var i = 0; i < change.Ops.length; ++i) {
+        var op = change.Ops[i];
         if (typeof op == "string") {
-          body = body + op;
+          text = text + op;
         } else if (op > 0) {
-          var len = ot.ucs2len(this._body, pos, <number> op);
-          body += this._body.slice(pos, pos + len);
+          var len = ot.ucs2len(this._props[change.Prop], pos, <number> op);
+          text += this._props[change.Prop].slice(pos, pos + len);
           pos += len;
         } else if (op < 0) {
-          var len = ot.ucs2len(this._body, pos, <number> -op);
+          var len = ot.ucs2len(this._props[change.Prop], pos, <number> -op);
           pos += len;
         }
       }
-      this._body = body;
-
-      // TODO: Optimization: Keep track of body start index and use this to early out on property parsing.
-      this.parseProperties();
-    }
-
-    private parseProperties() {
-      this._props = [];
-
-      var i = 0, state = 0;
-      var keyStart: number, valueStart: number;
-      var key: string;
-
-    loop:
-      for (i = 0; i < this._body.length; ++i) {
-        var ch = this._body[i];
-        switch (state) {
-        case 0: // start
-          if (ch == '{') {
-            state = 1;
-            keyStart = i + 1;
-          }
-          break;
-
-        case 1: // key
-          switch (ch) {
-          case ':':
-            key = this._body.slice(keyStart, i).trim();
-            valueStart = i + 1;
-            state = 2;
-            break;
-          case '}':
-            break loop;
-          }
-          break;
-
-        case 2: // value
-          switch (ch) {
-          case '\n':
-            var value = this._body.slice(valueStart, i).trim();
-            var prop = {key: key, value: value};
-            this._props.push(prop);
-            state = 1;
-            keyStart = i + 1;
-            break;
-          case '}':
-            break loop;
-          }
-        }
-      }
-
-      // Optionally trim trailing CR before body.
-      i++;
-      if (i < this._body.length-1 && this._body[i] == '\n') {
-        i++;
-      }
-
-      this._bodyOfs = i;
+      this._props[change.Prop] = text;
     }
   }
 }

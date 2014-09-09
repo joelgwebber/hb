@@ -11,6 +11,11 @@ module onde {
   export var MsgCreateDoc = "createdoc";
   export var MsgError = "error";
 
+  export interface Change {
+    Prop: string;
+    Ops:  any[];
+  }
+
   // Requests.
   export interface Req {
     Type: string;
@@ -42,7 +47,7 @@ module onde {
     SubId: number;
     DocId: string;
     Rev: number;
-    Ops: any[];
+    Change: Change;
   }
 
   export interface SubscribeSearchReq {
@@ -82,7 +87,7 @@ module onde {
     DocId: string;
     SubId: number;
     Rev:   number;
-    Body:  string;
+    Props: {[prop: string]: string};
   }
 
   export interface UnsubscribeDocRsp {
@@ -95,7 +100,7 @@ module onde {
     DocId:  string;
     SubIds: number[];
     Rev:    number;
-    Ops:    any[];
+    Change: Change;
   }
 
   export interface SubscribeSearchRsp {

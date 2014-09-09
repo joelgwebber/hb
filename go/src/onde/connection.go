@@ -116,7 +116,7 @@ func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
 		DocId: req.DocId,
 		SubId: req.SubId,
 		Rev:   doc.Rev(),
-		Body:  doc.Text(),
+		Props: doc.Props(),
 	}.Send(conn.sock)
 }
 
@@ -138,7 +138,7 @@ func (conn *Connection) handleRevise(req *ReviseReq) {
 		ErrorRsp{Msg: fmt.Sprintf("error revising document %s - not subscribed", req.DocId)}.Send(conn.sock)
 		return
 	}
-	doc.Revise(req.ConnId, req.SubId, req.Rev, req.Ops)
+	doc.Revise(req.ConnId, req.SubId, req.Rev, req.Change)
 }
 
 func (conn *Connection) handleSubscribeSearch(req *SubscribeSearchReq) {

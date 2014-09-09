@@ -6,7 +6,7 @@
 // - Track acknowledged requests.
 module onde.connection {
 
-  var LOG_MESSAGES = false;
+  var LOG_MESSAGES = true;
 
   export class DocSubscription {
     _subId: number;
@@ -19,10 +19,10 @@ module onde.connection {
       this._subId = ++_curSubId;
     }
 
-    revise(rev: number, ops: any[]) {
+    revise(rev: number, change: Change) {
       var req: Req = {
         Type: MsgRevise,
-        Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Ops: ops }
+        Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Change: change }
       };
       send(req);
     }

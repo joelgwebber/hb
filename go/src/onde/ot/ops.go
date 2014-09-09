@@ -16,6 +16,7 @@ import (
 var noop Op
 
 // Op represents a single operation.
+// TODO: consider making this just interface{} to save space.
 type Op struct {
 	// N signifies the operation type:
 	// >  0: Retain  N bytes

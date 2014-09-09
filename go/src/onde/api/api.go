@@ -20,6 +20,11 @@ const (
 	MsgError             = "error"
 )
 
+type Change struct {
+	Prop string
+	Ops  ot.Ops
+}
+
 // Requests.
 type Req struct {
 	Type              string
@@ -50,7 +55,7 @@ type ReviseReq struct {
 	SubId  int
 	DocId  string
 	Rev    int
-	Ops    ot.Ops
+	Change Change
 }
 
 type SubscribeSearchReq struct {
@@ -94,7 +99,7 @@ type SubscribeDocRsp struct {
 	DocId string
 	SubId int
 	Rev   int
-	Body  string
+	Props map[string]string
 }
 
 func (rsp SubscribeDocRsp) Send(sock sockjs.Session) error {
@@ -115,7 +120,7 @@ type ReviseRsp struct {
 	DocId      string
 	SubIds     []int
 	Rev        int
-	Ops        ot.Ops
+	Change     Change
 }
 
 func (rsp ReviseRsp) Send(sock sockjs.Session) error {

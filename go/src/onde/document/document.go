@@ -10,6 +10,7 @@ import (
 	"onde/solr"
 	"strconv"
 	"strings"
+	"onde/api"
 )
 
 var master struct {
@@ -72,7 +73,8 @@ func run() {
 
 type Document struct {
 	id            string
-	srv           *ot.Server
+	props         map[string]*ot.Doc
+	history       []api.Change
 	subscriptions map[string]sockjs.Session
 	subs          chan subReq
 	unsubs        chan unsubReq
@@ -83,26 +85,35 @@ type docUpdate struct {
 	connId string
 	subId  int
 	rev    int
-	ops    ot.Ops
+	change api.Change
 }
 
 func newDocument(docId string, done chan<- *Document) (*Document, error) {
-	solrDoc, err := solr.GetDoc("onde", docId)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes := []byte(*solrDoc.GetString("body"))
 	doc := &Document{
 		id:            docId,
-		srv:           &ot.Server{Doc: (*ot.Doc)(&bytes)},
+		props:         make(map[string]*ot.Doc),
+		history:       make([]api.Change, 0),
 		subscriptions: make(map[string]sockjs.Session),
 		subs:          make(chan subReq),
 		unsubs:        make(chan unsubReq),
 		updates:       make(chan docUpdate), // TODO: consider increasing channel size
 	}
-	go doc.run(done)
 
+	// TODO: I don't like the way we're dealing with JsonObject here.
+	// Consider ditching it and just keeping its little 'get-walker' as a helper func.
+	solrDoc, err := solr.GetDoc("onde", docId)
+	if err != nil {
+		return nil, err
+	}
+	solrMap := map[string]interface{}(solrDoc)
+	for k, v := range solrMap {
+		if strings.HasPrefix(k, "prop_") {
+			value := ot.NewDoc(v.(string))
+			doc.props[k[5:]] = &value
+		}
+	}
+
+	go doc.run(done)
 	return doc, nil
 }
 
@@ -111,7 +122,8 @@ func Create() (docId string, err error) {
 	// TODO: WILL NOT WORK FOR LONG.
 	docId = strconv.FormatInt(rand.Int63(), 10)
 
-	if err = solr.UpdateDoc("onde", docId, "", true); err != nil {
+	empty := ot.NewDoc("")
+	if err = solr.UpdateDoc("onde", docId, map[string]*ot.Doc{ "body": &empty, }, true); err != nil {
 		return "", err
 	}
 
@@ -125,14 +137,59 @@ func Subscribe(docId string, connId string, subId int, sock sockjs.Session) (*Do
 	return <-rsp, nil
 }
 
-// Gets the current document revision.
-func (doc *Document) Rev() int {
-	return doc.srv.Rev()
+// Receives a change, transforms and applies it, returning the transformed change.
+// Sending the updated change to connected clients is the caller's responsibility.
+func (doc *Document) Recv(rev int, change api.Change) (api.Change, error) {
+	if rev < 0 || len(doc.history) < rev {
+		return api.Change{}, fmt.Errorf("Revision not in history")
+	}
+
+	var err error
+	outops := change.Ops
+
+	// Transform ops against all operations that happened since rev.
+	for _, other := range doc.history[rev:] {
+		if other.Prop == change.Prop {
+			if outops, _, err = ot.Transform(change.Ops, other.Ops); err != nil {
+				return api.Change{}, err
+			}
+		}
+	}
+
+	// Get the propery's doc, initializing it if absent.
+	// TODO: Should we delete doc entries when they become empty, or only do it during serialization?
+	prop, exists := doc.props[change.Prop]
+	if !exists {
+		empty := ot.NewDoc("")
+		prop = &empty
+		doc.props[change.Prop] = prop
+	}
+
+	// Apply to document.
+	if err = prop.Apply(change.Ops); err != nil {
+		return api.Change{}, err
+	}
+	doc.history = append(doc.history, change)
+	return api.Change{Prop: change.Prop, Ops: outops}, nil
 }
 
-// Gets the current document text.
-func (doc *Document) Text() string {
-	return string(*doc.srv.Doc)
+// Gets the current document revision.
+func (doc *Document) Rev() int {
+	return len(doc.history)
+}
+
+// Gets the document's id.
+func (doc *Document) Id() string {
+	return doc.id
+}
+
+// Gets all the document's properties as strings.
+func (doc *Document) Props() map[string]string {
+	var props = make(map[string]string)
+	for k, v := range doc.props {
+		props[k] = v.String()
+	}
+	return props
 }
 
 // Unsubscribes a connection from the document.
@@ -143,8 +200,8 @@ func (doc *Document) Unsubscribe(connId string, subId int) {
 
 // Revise a document. Its goroutine will ensure that the resulting ops
 // are broadcast to all subscribers.
-func (doc *Document) Revise(connId string, subId int, rev int, ops ot.Ops) {
-	doc.updates <- docUpdate{connId: connId, subId: subId, rev: rev, ops: ops}
+func (doc *Document) Revise(connId string, subId int, rev int, change api.Change) {
+	doc.updates <- docUpdate{connId: connId, subId: subId, rev: rev, change: change}
 }
 
 // Main loop for each open Document. Maintains access to subscriptions via the subs/unsubs channels.
@@ -165,24 +222,24 @@ func (doc *Document) run(done chan<- *Document) {
 			log.Printf("[%d] unsub doc %s: %s", len(doc.subs), doc.id, req.connId)
 
 		case update := <-doc.updates:
-			outops, err := doc.srv.Recv(update.rev, update.ops)
+			outchange, err := doc.Recv(update.rev, update.change)
 			if err != nil {
 				log.Printf("error applying ops to doc %s: %s", doc.id, err)
 				return
 			}
-			doc.broadcast(update, outops)
+			doc.broadcast(update, outchange)
 			doc.persist() // TODO: Persist less aggressively.
 		}
 	}
 }
 
-func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
+func (doc *Document) broadcast(update docUpdate, change api.Change) {
 	rsp := ReviseRsp{
 		OrigConnId: update.connId,
 		OrigSubId:  update.subId,
 		Rev:        update.rev,
 		DocId:      doc.id,
-		Ops:        ops,
+		Change:     change,
 	}
 	socks := make(map[sockjs.Session][]int)
 	for key, sock := range doc.subscriptions {
@@ -195,7 +252,7 @@ func (doc *Document) broadcast(update docUpdate, ops ot.Ops) {
 }
 
 func (doc *Document) persist() {
-	solr.UpdateDoc("onde", doc.id, string(*doc.srv.Doc), true)
+	solr.UpdateDoc("onde", doc.id, doc.props, true)
 }
 
 func subKey(connId string, subId int) string {

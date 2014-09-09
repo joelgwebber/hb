@@ -14,6 +14,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"onde/ot"
 )
 
 const (
@@ -114,20 +115,20 @@ func GetDocs(orgId string, params url.Values) (total int, results []JsonObject, 
 	return
 }
 
-func UpdateDoc(orgId, docId, body string, forceCommit bool) error {
+// TODO: Consider changing 'doc' to just be docId and the prop map.
+
+func UpdateDoc(orgId, docId string, props map[string]*ot.Doc, forceCommit bool) error {
 	// Build the solr document.
-	doc := make(map[string]interface{})
-	doc["_version_"] = docVersion
-	doc["id"] = docId
-	props, _ := extractProperties(body)
-	for k, v := range props {
-		doc["prop_"+k] = v
+	solrdoc := make(map[string]interface{})
+	solrdoc["_version_"] = docVersion
+	solrdoc["id"] = docId
+	for name, doc := range props {
+		solrdoc["prop_" + name] = doc.String()
 	}
-	doc["body"] = body // TODO: consider indexing only the extracted body
 
 	buf := &bytes.Buffer{}
 	buf.WriteString(`{"add":{"doc":`)
-	err := json.NewEncoder(buf).Encode(&doc)
+	err := json.NewEncoder(buf).Encode(&solrdoc)
 	if err != nil {
 		return err
 	}
@@ -143,68 +144,6 @@ func UpdateDoc(orgId, docId, body string, forceCommit bool) error {
 	return err // could be nil
 }
 
-// Extracts properties from the beginning of the document. They must be of the form:
-// {
-// prop0:val0
-// prop1:val1
-// ...
-// }
-// [body text]
-//
-// Properties and values have leading/trailing whitespace trimmed, and one trailing
-// CR after the closing brace will be ignored.
-func extractProperties(body string) (props map[string]string, newBody string) {
-	props = make(map[string]string)
-
-	var i int
-	var ch rune
-	var keyStart, valueStart int
-	var key string
-	state := 0
-
-loop:
-	for i, ch = range body {
-		switch state {
-		case 0: // start
-			if ch == '{' {
-				state = 1
-				keyStart = i + 1
-			}
-
-		case 1: // key
-			switch ch {
-			case ':':
-				key = strings.TrimSpace(body[keyStart:i])
-				valueStart = i + 1
-				state = 2
-			case '}':
-				break loop
-			}
-
-		case 2: // value
-			switch ch {
-			case '\n':
-				value := strings.TrimSpace(body[valueStart:i])
-				props[key] = value
-				state = 1
-				keyStart = i + 1
-			case '}':
-				break loop
-			}
-		}
-	}
-
-	// Optionally trim trailing CR before body.
-	i++
-	if i < len(body)-1 && body[i] == '\n' {
-		i++
-	}
-
-	if i < len(body) {
-		newBody = body[i:]
-	}
-	return
-}
 
 func solrHome() string {
 	varname := "SOLR_HOME"
