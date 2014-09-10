@@ -17,25 +17,25 @@ module onde {
     release: () => void;
   }
 
-  // Client-side document abstraction. Maintains subscription to server-side document, along with
-  // OT bookkeeping. Also maintains the property list at the beginning of the document, hiding it
-  // from users so they don't see it as part of the document body.
+  // Client-side card abstraction. Maintains subscription to server-side card, along with
+  // OT bookkeeping. Also maintains the property list at the beginning of the card, hiding it
+  // from users so they don't see it as part of the card body.
   //
-  // A new Document class must be instantiated for each doc-id, and release() must
+  // A new Card class must be instantiated for each doc-id, and release() must
   // be called when discarding an instance (otherwise it will leak subscriptions until the connection
   // is lost).
-  export class Document {
+  export class Card {
 //    private _status = "";
     private _wait: {[prop: string]: any[]} = {};
     private _buf: {[prop: string]: any[]} = {};
     private _props: {[prop: string]: string} = {};
-    private _sub: connection.DocSubscription;
+    private _sub: connection.CardSubscription;
     private _rev = -1;
     private _bindings: {[prop: string]: Binding} = {};
 
     constructor(private _docId: string) {
-      this._sub = connection.subscribeDoc(_docId,
-          (rsp: SubscribeDocRsp) => {
+      this._sub = connection.subscribeCard(_docId,
+          (rsp: SubscribeCardRsp) => {
             this._rev = rsp.Rev;
             this._props = rsp.Props;
             this.subscribed();
@@ -77,12 +77,12 @@ module onde {
       return binding;
     }
 
-    // The current document revision. Any mutation to the document will bump this value.
+    // The current card revision. Any mutation to the card will bump this value.
     revision(): number {
       return this._rev;
     }
 
-    // The document's given property, by name.
+    // The card's given property, by name.
     // Non-existent properties return "". Revisions automatically bring new properties into existence.
     prop(key: string): string {
       if (!(key in this._props)) {
@@ -91,7 +91,7 @@ module onde {
       return this._props[key];
     }
 
-    // Must be called when done with a document instance.
+    // Must be called when done with a card instance.
     release() {
       // TODO: Check for outgoing ops and make sure they go to the server.
 //      this._status = "";
@@ -112,7 +112,7 @@ module onde {
       }
     }
 
-    // Revise this document with OT ops (as defined in ot.ts).
+    // Revise this card with OT ops (as defined in ot.ts).
     private revise(change: Change) {
       if (this._buf[change.Prop]) {
         this._buf[change.Prop] = ot.compose(this._buf[change.Prop], change.Ops);

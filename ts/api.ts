@@ -2,13 +2,13 @@ module onde {
 
   // Message types.
   export var MsgLogin = "login";
-  export var MsgSubscribeDoc = "subscribedoc";
-  export var MsgUnsubscribeDoc = "unsubscribedoc";
+  export var MsgSubscribeCard = "subscribecard";
+  export var MsgUnsubscribeCard = "unsubscribecard";
   export var MsgRevise = "revise";
   export var MsgSubscribeSearch = "subscribesearch";
   export var MsgUnsubscribeSearch = "unsubscribesearch";
   export var MsgSearchResults = "searchresults";
-  export var MsgCreateDoc = "createdoc";
+  export var MsgCreateCard = "createcard";
   export var MsgError = "error";
 
   export interface Change {
@@ -21,31 +21,31 @@ module onde {
     Type: string;
 
     Login?: LoginReq;
-    SubscribeDoc?: SubscribeDocReq;
-    UnsubscribeDoc?: UnsubscribeDocReq;
+    SubscribeCard?: SubscribeCardReq;
+    UnsubscribeCard?: UnsubscribeCardReq;
     Revise?: ReviseReq;
     SubscribeSearch?: SubscribeSearchReq;
     UnsubscribeSearch?: UnsubscribeSearchReq;
-    CreateDoc?: CreateDocReq;
+    CreateCard?: CreateCardReq;
   }
 
   export interface LoginReq {
     UserId: string;
   }
 
-  export interface SubscribeDocReq {
-    DocId: string;
+  export interface SubscribeCardReq {
+    CardId: string;
     SubId: number;
   }
 
-  export interface UnsubscribeDocReq {
+  export interface UnsubscribeCardReq {
     SubId: number;
   }
 
   export interface ReviseReq {
     ConnId: string;
     SubId: number;
-    DocId: string;
+    CardId: string;
     Rev: number;
     Change: Change;
   }
@@ -58,7 +58,7 @@ module onde {
     Query: string;
   }
 
-  export interface CreateDocReq {
+  export interface CreateCardReq {
     CreateId: number;
   }
 
@@ -67,12 +67,12 @@ module onde {
     Type: string;
 
     Login?: LoginRsp;
-    SubscribeDoc?: SubscribeDocRsp;
-    UnsubscribeDoc?: UnsubscribeDocRsp;
+    SubscribeCard?: SubscribeCardRsp;
+    UnsubscribeCard?: UnsubscribeCardRsp;
     Revise?: ReviseRsp;
     SubscribeSearch?: SubscribeSearchRsp;
     UnsubscribeSearch?: UnsubscribeSearchRsp;
-    CreateDoc?: CreateDocRsp;
+    CreateCard?: CreateCardRsp;
 
     SearchResults?: SearchResultsRsp;
     Error?: ErrorRsp;
@@ -83,21 +83,21 @@ module onde {
     ConnId: string;
   }
 
-  export interface SubscribeDocRsp {
-    DocId: string;
+  export interface SubscribeCardRsp {
+    CardId: string;
     SubId: number;
     Rev:   number;
     Props: {[prop: string]: string};
   }
 
-  export interface UnsubscribeDocRsp {
+  export interface UnsubscribeCardRsp {
     SubId: string;
   }
 
   export interface ReviseRsp {
     OrigConnId: string;
     OrigSubId:  number;
-    DocId:  string;
+    CardId:  string;
     SubIds: number[];
     Rev:    number;
     Change: Change;
@@ -111,9 +111,9 @@ module onde {
     Query: string;
   }
 
-  export interface CreateDocRsp {
+  export interface CreateCardRsp {
     CreateId: number;
-    DocId: string;
+    CardId: string;
   }
 
   export interface SearchResultsRsp {
@@ -123,7 +123,7 @@ module onde {
   }
 
   export interface SearchResult {
-    DocId: string;
+    CardId: string;
     Title: string;
     Body: string;
   }

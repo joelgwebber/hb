@@ -8,12 +8,12 @@ module onde.connection {
 
   var LOG_MESSAGES = true;
 
-  export class DocSubscription {
+  export class CardSubscription {
     _subId: number;
 
     constructor(
-        public docId: string,
-        public _onsubscribe: (rsp: SubscribeDocRsp) => void,
+        public cardId: string,
+        public _onsubscribe: (rsp: SubscribeCardRsp) => void,
         public _onrevision: (rsp: ReviseRsp) => void,
         public _onack: (rsp: ReviseRsp) => void) {
       this._subId = ++_curSubId;
@@ -22,15 +22,15 @@ module onde.connection {
     revise(rev: number, change: Change) {
       var req: Req = {
         Type: MsgRevise,
-        Revise: { ConnId: connId, SubId: this._subId, DocId: this.docId, Rev: rev, Change: change }
+        Revise: { ConnId: connId, SubId: this._subId, CardId: this.cardId, Rev: rev, Change: change }
       };
       send(req);
     }
 
     unsubscribe() {
       var req: Req = {
-        Type: MsgUnsubscribeDoc,
-        UnsubscribeDoc: { SubId: this._subId }
+        Type: MsgUnsubscribeCard,
+        UnsubscribeCard: { SubId: this._subId }
       };
       send(req);
     }
@@ -60,9 +60,9 @@ module onde.connection {
 
   var sock: SockJS;
   var connId: string;
-  var docSubs: {[key: string]: DocSubscription} = {};
+  var cardSubs: {[key: string]: CardSubscription} = {};
   var searchSubs: {[query: string]: SearchSubscription[]} = {};
-  var onCreates: {[createId: number]: (rsp: CreateDocRsp) => void} = {};
+  var onCreates: {[createId: number]: (rsp: CreateCardRsp) => void} = {};
 
   export var onOpen: () => void;
   export var onClose: () => void;
@@ -95,17 +95,17 @@ module onde.connection {
     send(req);
   }
 
-  export function subscribeDoc(docId: string,
-      onSubscribe: (rsp: SubscribeDocRsp) => void,
+  export function subscribeCard(cardId: string,
+      onSubscribe: (rsp: SubscribeCardRsp) => void,
       onRevision: (rsp: ReviseRsp) => void,
-      onAck: (rsp: ReviseRsp) => void): DocSubscription {
+      onAck: (rsp: ReviseRsp) => void): CardSubscription {
 
-    var sub = new DocSubscription(docId, onSubscribe, onRevision, onAck);
-    docSubs[docSubKey(docId, sub._subId)] = sub;
+    var sub = new CardSubscription(cardId, onSubscribe, onRevision, onAck);
+    cardSubs[cardSubKey(cardId, sub._subId)] = sub;
 
     var req: Req = {
-      Type: MsgSubscribeDoc,
-      SubscribeDoc: { DocId: docId, SubId: sub._subId }
+      Type: MsgSubscribeCard,
+      SubscribeCard: { CardId: cardId, SubId: sub._subId }
     };
     send(req);
     return sub;
@@ -128,12 +128,12 @@ module onde.connection {
     return sub;
   }
 
-  export function createDoc(onCreated: (rsp: CreateDocRsp) => void) {
+  export function createCard(onCreated: (rsp: CreateCardRsp) => void) {
     var id = ++_curCreateId;
     onCreates[id] = onCreated;
     var req: Req = {
-      Type: MsgCreateDoc,
-      CreateDoc: { CreateId: id }
+      Type: MsgCreateCard,
+      CreateCard: { CreateId: id }
     };
     send(req);
   }
@@ -149,16 +149,16 @@ module onde.connection {
     }
   }
 
-  function handleSubscribeDoc(rsp: SubscribeDocRsp) {
-    var sub = docSubs[docSubKey(rsp.DocId, rsp.SubId)];
+  function handleSubscribeCard(rsp: SubscribeCardRsp) {
+    var sub = cardSubs[cardSubKey(rsp.CardId, rsp.SubId)];
     sub._onsubscribe(rsp);
   }
 
   function handleRevise(rsp: ReviseRsp) {
     for (var i = 0; i < rsp.SubIds.length; ++i) {
-      var sub = docSubs[docSubKey(rsp.DocId, rsp.SubIds[0])];
+      var sub = cardSubs[cardSubKey(rsp.CardId, rsp.SubIds[0])];
       if (!sub) {
-        log("got results for doc " + rsp.DocId + " with no local subscription");
+        log("got results for card " + rsp.CardId + " with no local subscription");
         continue;
       }
 
@@ -182,7 +182,7 @@ module onde.connection {
     }
   }
 
-  function handleCreateDoc(rsp: CreateDocRsp) {
+  function handleCreateCard(rsp: CreateCardRsp) {
     var onCreate = onCreates[rsp.CreateId];
     if (!onCreate) {
       log("got unmatched create response " + rsp.CreateId);
@@ -193,8 +193,8 @@ module onde.connection {
     onCreate(rsp);
   }
 
-  function docSubKey(docId: string, subId: number): string {
-    return docId + ":" + subId;
+  function cardSubKey(cardId: string, subId: number): string {
+    return cardId + ":" + subId;
   }
 
   function send(req: Req) {
@@ -214,11 +214,11 @@ module onde.connection {
         handleLogin(rsp.Login);
         break;
 
-      case MsgSubscribeDoc:
-        handleSubscribeDoc(rsp.SubscribeDoc);
+      case MsgSubscribeCard:
+        handleSubscribeCard(rsp.SubscribeCard);
         break;
 
-      case MsgUnsubscribeDoc:
+      case MsgUnsubscribeCard:
         // TODO
         break;
 
@@ -238,8 +238,8 @@ module onde.connection {
         // TODO
         break;
 
-      case MsgCreateDoc:
-        handleCreateDoc(rsp.CreateDoc);
+      case MsgCreateCard:
+        handleCreateCard(rsp.CreateCard);
         break;
 
       case MsgError:

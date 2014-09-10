@@ -6,7 +6,7 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
 	. "onde/api"
-	"onde/document"
+	"onde/card"
 	"onde/search"
 	"strings"
 )
@@ -14,7 +14,7 @@ import (
 type Connection struct {
 	user       *User
 	sock       sockjs.Session
-	docSubs    map[int]*document.Document // subId -> Document
+	cardSubs    map[int]*card.Card // subId -> Card
 	searchSubs map[string]*search.Search  // query -> Search
 }
 
@@ -44,14 +44,14 @@ func SockHandler(sock sockjs.Session) {
 					LoginRsp{UserId: req.Login.UserId, ConnId: conn.Id()}.Send(sock)
 				}
 
-			case MsgSubscribeDoc:
+			case MsgSubscribeCard:
 				if conn.validate(sock) {
-					conn.handleSubscribeDoc(req.SubscribeDoc)
+					conn.handleSubscribeCard(req.SubscribeCard)
 				}
 
-			case MsgUnsubscribeDoc:
+			case MsgUnsubscribeCard:
 				if conn.validate(sock) {
-					conn.handleUnsubscribeDoc(req.UnsubscribeDoc)
+					conn.handleUnsubscribeCard(req.UnsubscribeCard)
 				}
 
 			case MsgRevise:
@@ -69,9 +69,9 @@ func SockHandler(sock sockjs.Session) {
 					conn.handleUnsubscribeSearch(req.UnsubscribeSearch)
 				}
 
-			case MsgCreateDoc:
+			case MsgCreateCard:
 				if conn.validate(sock) {
-					conn.handleCreateDoc(req.CreateDoc)
+					conn.handleCreateCard(req.CreateCard)
 				}
 			}
 
@@ -99,46 +99,46 @@ func (conn *Connection) validate(sock sockjs.Session) bool {
 	return true
 }
 
-func (conn *Connection) handleSubscribeDoc(req *SubscribeDocReq) {
-	if _, exists := conn.docSubs[req.SubId]; exists {
+func (conn *Connection) handleSubscribeCard(req *SubscribeCardReq) {
+	if _, exists := conn.cardSubs[req.SubId]; exists {
 		ErrorRsp{Msg: fmt.Sprintf("double subscribe subid %d", req.SubId)}.Send(conn.sock)
 		return
 	}
 
-	doc, err := document.Subscribe(req.DocId, conn.Id(), req.SubId, conn.sock)
+	card, err := card.Subscribe(req.CardId, conn.Id(), req.SubId, conn.sock)
 	if err != nil {
-		ErrorRsp{Msg: fmt.Sprintf("no such document: %s", req.DocId)}.Send(conn.sock)
+		ErrorRsp{Msg: fmt.Sprintf("no such card: %s", req.CardId)}.Send(conn.sock)
 		return
 	}
-	conn.docSubs[req.SubId] = doc
+	conn.cardSubs[req.SubId] = card
 
-	SubscribeDocRsp{
-		DocId: req.DocId,
+	SubscribeCardRsp{
+		CardId: req.CardId,
 		SubId: req.SubId,
-		Rev:   doc.Rev(),
-		Props: doc.Props(),
+		Rev:   card.Rev(),
+		Props: card.Props(),
 	}.Send(conn.sock)
 }
 
-func (conn *Connection) handleUnsubscribeDoc(req *UnsubscribeDocReq) {
-	doc, exists := conn.docSubs[req.SubId]
+func (conn *Connection) handleUnsubscribeCard(req *UnsubscribeCardReq) {
+	card, exists := conn.cardSubs[req.SubId]
 	if !exists {
 		ErrorRsp{Msg: fmt.Sprintf("error unsubscribing subid %d: no subscription found", req.SubId)}.Send(conn.sock)
 		return
 	}
 
-	delete(conn.docSubs, req.SubId)
-	doc.Unsubscribe(conn.Id(), req.SubId)
-	UnsubscribeDocRsp{SubId: req.SubId}.Send(conn.sock)
+	delete(conn.cardSubs, req.SubId)
+	card.Unsubscribe(conn.Id(), req.SubId)
+	UnsubscribeCardRsp{SubId: req.SubId}.Send(conn.sock)
 }
 
 func (conn *Connection) handleRevise(req *ReviseReq) {
-	doc, exists := conn.docSubs[req.SubId]
+	card, exists := conn.cardSubs[req.SubId]
 	if !exists {
-		ErrorRsp{Msg: fmt.Sprintf("error revising document %s - not subscribed", req.DocId)}.Send(conn.sock)
+		ErrorRsp{Msg: fmt.Sprintf("error revising card %s - not subscribed", req.CardId)}.Send(conn.sock)
 		return
 	}
-	doc.Revise(req.ConnId, req.SubId, req.Rev, req.Change)
+	card.Revise(req.ConnId, req.SubId, req.Rev, req.Change)
 }
 
 func (conn *Connection) handleSubscribeSearch(req *SubscribeSearchReq) {
@@ -171,20 +171,20 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 	UnsubscribeSearchRsp{Query: req.Query}.Send(conn.sock)
 }
 
-func (conn *Connection) handleCreateDoc(req *CreateDocReq) {
-	docId, err := document.Create(conn.Id())
+func (conn *Connection) handleCreateCard(req *CreateCardReq) {
+	cardId, err := card.Create(conn.Id())
 	if err != nil {
-		ErrorRsp{Msg: fmt.Sprintf("error creating document: %s", err)}.Send(conn.sock)
+		ErrorRsp{Msg: fmt.Sprintf("error creating card: %s", err)}.Send(conn.sock)
 		return
 	}
-	CreateDocRsp{CreateId: req.CreateId, DocId: docId}.Send(conn.sock)
+	CreateCardRsp{CreateId: req.CreateId, CardId: cardId}.Send(conn.sock)
 }
 
 func (conn *Connection) cleanupSubs() {
-	// Remove this connection's subscriptions from their documents.
+	// Remove this connection's subscriptions from their cards.
 	// Don't bother clearing conn.*Subs, because it won't be reused
-	for subId, doc := range conn.docSubs {
-		doc.Unsubscribe(conn.Id(), subId)
+	for subId, card := range conn.cardSubs {
+		card.Unsubscribe(conn.Id(), subId)
 	}
 	for _, s := range conn.searchSubs {
 		s.Unsubscribe(conn.Id())
@@ -195,7 +195,8 @@ func newConnection(user *User, sock sockjs.Session) *Connection {
 	return &Connection{
 		user:       user,
 		sock:       sock,
-		docSubs:    make(map[int]*document.Document),
+		cardSubs:    make(map[int]*card.Card),
 		searchSubs: make(map[string]*search.Search),
 	}
 }
+

@@ -7,19 +7,19 @@ module onde {
   var DEBUG = true;
 
   var searchBox: SearchBox;
-  var doc: Document;
+  var card: Card;
   var titleEditor: TextInputEditor;
   var aceEditor: AceEditor;
   var statusElem;
   var createElem;
 
-  function edit(docId: string) {
-    if (doc) {
-      doc.release();
+  function edit(cardId: string) {
+    if (card) {
+      card.release();
     }
-    doc = new Document(docId);
-    aceEditor.bind(doc, "body");
-    titleEditor.bind(doc, "title");
+    card = new Card(cardId);
+    aceEditor.bind(card, "body");
+    titleEditor.bind(card, "title");
   }
 
   export function main() {
@@ -42,11 +42,11 @@ module onde {
     createElem.textContent = "create";
     document.body.appendChild(createElem);
 
-    searchBox.onSelectDoc = (docId) => { edit(docId); };
+    searchBox.onSelectCard = (cardId) => { edit(cardId); };
 
     createElem.onclick = (e) => {
-      connection.createDoc((rsp) => {
-        edit(rsp.DocId);
+      connection.createCard((rsp) => {
+        edit(rsp.CardId);
       });
     };
 

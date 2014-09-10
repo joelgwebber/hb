@@ -8,7 +8,7 @@ module onde {
     private _results: HTMLElement;
     private _sub: connection.SearchSubscription;
 
-    onSelectDoc: (docId: string) => void;
+    onSelectCard: (cardId: string) => void;
 
     constructor() {
       this._elem = document.createElement("div");
@@ -52,13 +52,13 @@ module onde {
       var item = document.createElement("div");
       item.className = "item";
       item.textContent = result.Title;
-      item.onclick = (e) => { this.selectItem(result.DocId); };
+      item.onclick = (e) => { this.selectItem(result.CardId); };
       return item;
     }
 
-    private selectItem(docId: string) {
-      if (this.onSelectDoc) {
-        this.onSelectDoc(docId);
+    private selectItem(cardId: string) {
+      if (this.onSelectCard) {
+        this.onSelectCard(cardId);
       }
     }
   }

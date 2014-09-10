@@ -10,13 +10,13 @@ import (
 
 const (
 	MsgLogin             = "login"
-	MsgSubscribeDoc      = "subscribedoc"
-	MsgUnsubscribeDoc    = "unsubscribedoc"
+	MsgSubscribeCard      = "subscribecard"
+	MsgUnsubscribeCard    = "unsubscribecard"
 	MsgRevise            = "revise"
 	MsgSubscribeSearch   = "subscribesearch"
 	MsgUnsubscribeSearch = "unsubscribesearch"
 	MsgSearchResults     = "searchresults"
-	MsgCreateDoc         = "createdoc"
+	MsgCreateCard         = "createcard"
 	MsgError             = "error"
 )
 
@@ -29,31 +29,31 @@ type Change struct {
 type Req struct {
 	Type              string
 	Login             *LoginReq             `json:",omitempty"`
-	SubscribeDoc      *SubscribeDocReq      `json:",omitempty"`
-	UnsubscribeDoc    *UnsubscribeDocReq    `json:",omitempty"`
+	SubscribeCard      *SubscribeCardReq      `json:",omitempty"`
+	UnsubscribeCard    *UnsubscribeCardReq    `json:",omitempty"`
 	Revise            *ReviseReq            `json:",omitempty"`
 	SubscribeSearch   *SubscribeSearchReq   `json:",omitempty"`
 	UnsubscribeSearch *UnsubscribeSearchReq `json:",omitempty"`
-	CreateDoc         *CreateDocReq         `json:",omitempty"`
+	CreateCard         *CreateCardReq         `json:",omitempty"`
 }
 
 type LoginReq struct {
 	UserId string
 }
 
-type SubscribeDocReq struct {
-	DocId string
+type SubscribeCardReq struct {
+	CardId string
 	SubId int
 }
 
-type UnsubscribeDocReq struct {
+type UnsubscribeCardReq struct {
 	SubId int
 }
 
 type ReviseReq struct {
 	ConnId string
 	SubId  int
-	DocId  string
+	CardId  string
 	Rev    int
 	Change Change
 }
@@ -66,7 +66,7 @@ type UnsubscribeSearchReq struct {
 	Query string
 }
 
-type CreateDocReq struct {
+type CreateCardReq struct {
 	CreateId int
 }
 
@@ -76,11 +76,11 @@ type Rsp struct {
 
 	Login             *LoginRsp             `json:",omitempty"`
 	Revise            *ReviseRsp            `json:",omitempty"`
-	SubscribeDoc      *SubscribeDocRsp      `json:",omitempty"`
-	UnsubscribeDoc    *UnsubscribeDocRsp    `json:",omitempty"`
+	SubscribeCard      *SubscribeCardRsp      `json:",omitempty"`
+	UnsubscribeCard    *UnsubscribeCardRsp    `json:",omitempty"`
 	SubscribeSearch   *SubscribeSearchRsp   `json:",omitempty"`
 	UnsubscribeSearch *UnsubscribeSearchRsp `json:",omitempty"`
-	CreateDoc         *CreateDocRsp         `json:",omitempty"`
+	CreateCard         *CreateCardRsp         `json:",omitempty"`
 
 	SearchResults *SearchResultsRsp `json:",omitempty"`
 	Error         *ErrorRsp         `json:",omitempty"`
@@ -95,29 +95,29 @@ func (rsp LoginRsp) Send(sock sockjs.Session) error {
 	return sendRsp(sock, &Rsp{Type: MsgLogin, Login: &rsp})
 }
 
-type SubscribeDocRsp struct {
-	DocId string
+type SubscribeCardRsp struct {
+	CardId string
 	SubId int
 	Rev   int
 	Props map[string]string
 }
 
-func (rsp SubscribeDocRsp) Send(sock sockjs.Session) error {
-	return sendRsp(sock, &Rsp{Type: MsgSubscribeDoc, SubscribeDoc: &rsp})
+func (rsp SubscribeCardRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgSubscribeCard, SubscribeCard: &rsp})
 }
 
-type UnsubscribeDocRsp struct {
+type UnsubscribeCardRsp struct {
 	SubId int
 }
 
-func (rsp UnsubscribeDocRsp) Send(sock sockjs.Session) error {
-	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeDoc, UnsubscribeDoc: &rsp})
+func (rsp UnsubscribeCardRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeCard, UnsubscribeCard: &rsp})
 }
 
 type ReviseRsp struct {
 	OrigConnId string
 	OrigSubId  int
-	DocId      string
+	CardId      string
 	SubIds     []int
 	Rev        int
 	Change     Change
@@ -144,13 +144,13 @@ func (rsp UnsubscribeSearchRsp) Send(sock sockjs.Session) error {
 	return sendRsp(sock, &Rsp{Type: MsgUnsubscribeSearch, UnsubscribeSearch: &rsp})
 }
 
-type CreateDocRsp struct {
+type CreateCardRsp struct {
 	CreateId int
-	DocId    string
+	CardId    string
 }
 
-func (rsp CreateDocRsp) Send(sock sockjs.Session) error {
-	return sendRsp(sock, &Rsp{Type: MsgCreateDoc, CreateDoc: &rsp})
+func (rsp CreateCardRsp) Send(sock sockjs.Session) error {
+	return sendRsp(sock, &Rsp{Type: MsgCreateCard, CreateCard: &rsp})
 }
 
 type SearchResultsRsp struct {
@@ -160,7 +160,7 @@ type SearchResultsRsp struct {
 }
 
 type SearchResult struct {
-	DocId string
+	CardId string
 	Title string
 	Body  string
 }

@@ -146,7 +146,7 @@ func makeResults(in []solr.JsonObject) []SearchResult {
 	results := make([]SearchResult, len(in))
 	for i, js := range in {
 		results[i] = SearchResult{
-			DocId: *js.GetString("id"),
+			CardId: *js.GetString("id"),
 		}
 		title := js.GetString("prop_title")
 		if title != nil {

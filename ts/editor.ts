@@ -6,7 +6,7 @@
 
 /// <reference path="ot.ts" />
 /// <reference path="connection.ts" />
-/// <reference path="document.ts" />
+/// <reference path="card.ts" />
 /// <reference path="lib/ace.d.ts" />
 
 module onde {
@@ -35,14 +35,14 @@ module onde {
       return this._elem;
     }
 
-    bind(doc: Document, prop: string) {
+    bind(card: Card, prop: string) {
       // Release any old binding.
       if (this._binding) {
         this._binding.release();
       }
 
       // _merge guards against op feedback loops.
-      this._binding = doc.bind(prop, (value) => {
+      this._binding = card.bind(prop, (value) => {
         this._merge = true;
         this._elem.value = this._prevValue = value;
         this._merge = false;
@@ -82,7 +82,7 @@ module onde {
       // Setting the selection moves the cursor. We'll just have to let your
       // cursor drift if the element isn't active, though usually users don't
       // care.
-      if (newSelection && window.document.activeElement === this._elem) {
+      if (newSelection && document.activeElement === this._elem) {
         this._elem.selectionStart = newSelection[0];
         this._elem.selectionEnd = newSelection[1];
       }
@@ -152,7 +152,7 @@ module onde {
     }
   }
 
-  // Component that binds an Ace-based text editor to a Document.
+  // Component that binds an Ace-based text editor to a Card.
   export class AceEditor {
     private _elem: HTMLElement;
     private _ace: Ace.Editor;
@@ -177,7 +177,7 @@ module onde {
 
       this._acedoc.on('change', (e) => {
         if (this._merge) {
-          // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).
+          // Don't re-send changes due to ops being applied (or if the card's not yet loaded).
           return;
         }
 
@@ -191,14 +191,14 @@ module onde {
       return this._elem;
     }
 
-    bind(doc: Document, prop: string) {
+    bind(card: Card, prop: string) {
       // Release any old binding.
       if (this._binding) {
         this._binding.release();
       }
 
       // _merge guards against op feedback loops.
-      this._binding = doc.bind(prop, (value) => {
+      this._binding = card.bind(prop, (value) => {
         this._merge = true;
         this._acedoc.setValue(value);
         this._merge = false;
