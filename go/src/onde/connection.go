@@ -172,7 +172,7 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 }
 
 func (conn *Connection) handleCreateDoc(req *CreateDocReq) {
-	docId, err := document.Create()
+	docId, err := document.Create(conn.Id())
 	if err != nil {
 		ErrorRsp{Msg: fmt.Sprintf("error creating document: %s", err)}.Send(conn.sock)
 		return

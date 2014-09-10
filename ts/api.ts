@@ -124,6 +124,7 @@ module onde {
 
   export interface SearchResult {
     DocId: string;
+    Title: string;
     Body: string;
   }
 

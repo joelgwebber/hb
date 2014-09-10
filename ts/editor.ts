@@ -173,6 +173,8 @@ module onde {
       this._ace.setShowPrintMargin(false);
       this._session.setMode("ace/mode/markdown");
 
+      this._session.setUseWrapMode(true);
+
       this._acedoc.on('change', (e) => {
         if (this._merge) {
           // Don't re-send changes due to ops being applied (or if the doc's not yet loaded).

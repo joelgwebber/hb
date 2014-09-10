@@ -51,7 +51,7 @@ module onde {
     private createItem(result: SearchResult): HTMLElement {
       var item = document.createElement("div");
       item.className = "item";
-      item.textContent = result.Body;
+      item.textContent = result.Title;
       item.onclick = (e) => { this.selectItem(result.DocId); };
       return item;
     }

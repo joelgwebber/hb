@@ -161,6 +161,7 @@ type SearchResultsRsp struct {
 
 type SearchResult struct {
 	DocId string
+	Title string
 	Body  string
 }
 

@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
-	"math/rand"
 	. "onde/api"
 	"onde/ot"
 	"onde/solr"
 	"strconv"
 	"strings"
 	"onde/api"
+	"hash/fnv"
+	"time"
+	"encoding/base64"
+	"bytes"
+	"encoding/binary"
 )
 
 var master struct {
@@ -118,9 +122,17 @@ func newDocument(docId string, done chan<- *Document) (*Document, error) {
 }
 
 // Creates a new, empty document.
-func Create() (docId string, err error) {
-	// TODO: WILL NOT WORK FOR LONG.
-	docId = strconv.FormatInt(rand.Int63(), 10)
+func Create(connId string) (docId string, err error) {
+	// Create a 64-bit docid by hashing a combination of the connection id and the unix epoch time in nanos.
+	// Hopefully this is good enough to make collisions extremely unlikely. I really don't want super-long ids.
+	h := fnv.New64a()
+	h.Write([]byte(connId))
+	docIdInt := h.Sum64() ^ uint64(time.Now().UnixNano())
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, docIdInt)
+	docIdBuf := &bytes.Buffer{}
+	base64.NewEncoder(base64.StdEncoding, docIdBuf).Write(buf)
+	docId = docIdBuf.String()
 
 	empty := ot.NewDoc("")
 	if err = solr.UpdateDoc("onde", docId, map[string]*ot.Doc{ "body": &empty, }, true); err != nil {

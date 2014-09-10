@@ -148,6 +148,10 @@ func makeResults(in []solr.JsonObject) []SearchResult {
 		results[i] = SearchResult{
 			DocId: *js.GetString("id"),
 		}
+		title := js.GetString("prop_title")
+		if title != nil {
+			results[i].Title = *title
+		}
 		body := js.GetString("prop_body")
 		if body != nil {
 			results[i].Body = *body
