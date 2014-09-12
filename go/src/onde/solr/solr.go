@@ -122,6 +122,7 @@ func UpdateDoc(orgId, docId string, props map[string]*ot.Doc, forceCommit bool) 
 	solrdoc := make(map[string]interface{})
 	solrdoc["_version_"] = docVersion
 	solrdoc["id"] = docId
+	solrdoc["modified"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 	for name, doc := range props {
 		solrdoc["prop_" + name] = doc.String()
 	}

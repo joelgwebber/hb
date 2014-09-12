@@ -123,6 +123,7 @@ func (s *Search) update() {
 	total, results, err := solr.GetDocs("onde", url.Values{
 			"q": []string{s.query},
 			"rows": []string{"500"},
+			"sort": []string{"modified desc"},
 		})
 	if err != nil {
 		log.Printf("error retrieving docs for search %s : %s", s.query, err)

@@ -4,10 +4,10 @@
   <uniqueKey>id</uniqueKey>
   <solrQueryParser defaultOperator="AND"/>
 
-  <!-- TODO: Make body un-indexed, create a new field for "body after props", make it and props un-indexed. -->
   <fields>
     <field name="_version_" type="int64"/>
     <field name="id" type="string"/>
+    <field name="modified" type="date"/>
     <dynamicField name="prop_*" type="text_general"/>
   </fields>
 
