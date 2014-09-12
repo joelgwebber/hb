@@ -172,7 +172,7 @@ func (conn *Connection) handleUnsubscribeSearch(req *UnsubscribeSearchReq) {
 }
 
 func (conn *Connection) handleCreateCard(req *CreateCardReq) {
-	cardId, err := card.Create(conn.Id())
+	cardId, err := card.Create(conn.Id(), req.Props)
 	if err != nil {
 		ErrorRsp{Msg: fmt.Sprintf("error creating card: %s", err)}.Send(conn.sock)
 		return

@@ -60,6 +60,7 @@ module onde {
 
   export interface CreateCardReq {
     CreateId: number;
+    Props: {[prop: string]: string};
   }
 
   // Responses.

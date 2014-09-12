@@ -140,8 +140,7 @@ func UpdateDoc(orgId, docId string, props map[string]*ot.Doc, forceCommit bool) 
 	}
 
 	_, err = post(orgId, SolrUpdateHandler, params, buf.Bytes(), "application/json")
-	// TODO: Check result.
-	return err // could be nil
+	return err
 }
 
 

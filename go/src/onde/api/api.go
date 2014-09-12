@@ -68,6 +68,7 @@ type UnsubscribeSearchReq struct {
 
 type CreateCardReq struct {
 	CreateId int
+	Props    map[string]string
 }
 
 // Responses.

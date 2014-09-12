@@ -128,12 +128,15 @@ module onde.connection {
     return sub;
   }
 
-  export function createCard(onCreated: (rsp: CreateCardRsp) => void) {
+  export function createCard(props: {[prop: string]: string}, onCreated: (rsp: CreateCardRsp) => void) {
     var id = ++_curCreateId;
     onCreates[id] = onCreated;
     var req: Req = {
       Type: MsgCreateCard,
-      CreateCard: { CreateId: id }
+      CreateCard: {
+        CreateId: id,
+        Props: props
+      }
     };
     send(req);
   }

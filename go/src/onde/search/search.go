@@ -120,7 +120,10 @@ func (s *Search) Unsubscribe(connId string) {
 
 func (s *Search) update() {
 	// TODO: Basic optimization: Don't requery unless *something* has changed.
-	total, results, err := solr.GetDocs("onde", url.Values{"q": []string{s.query}})
+	total, results, err := solr.GetDocs("onde", url.Values{
+			"q": []string{s.query},
+			"rows": []string{"500"},
+		})
 	if err != nil {
 		log.Printf("error retrieving docs for search %s : %s", s.query, err)
 	}

@@ -1,7 +1,8 @@
 /// <reference path="api.ts" />
 /// <reference path="connection.ts" />
-/// <reference path="editor.ts" />
 /// <reference path="search.ts" />
+/// <reference path="editor.ts" />
+/// <reference path="comments.ts" />
 
 module onde {
   var DEBUG = true;
@@ -10,6 +11,7 @@ module onde {
   var card: Card;
   var titleEditor: TextInputEditor;
   var aceEditor: AceEditor;
+  var commentList: CommentList;
   var statusElem;
   var createElem;
 
@@ -20,18 +22,22 @@ module onde {
     card = new Card(cardId);
     aceEditor.bind(card, "body");
     titleEditor.bind(card, "title");
+    commentList.setCardId(cardId);
   }
 
   export function main() {
     searchBox = new SearchBox();
     document.body.appendChild(searchBox.elem());
 
-    aceEditor = new AceEditor();
-    document.body.appendChild(aceEditor.elem());
-
     titleEditor = new TextInputEditor();
     titleEditor.elem().className = "TitleEditor";
     document.body.appendChild(titleEditor.elem());
+
+    aceEditor = new AceEditor();
+    document.body.appendChild(aceEditor.elem());
+
+    commentList = new CommentList();
+    document.body.appendChild(commentList.elem());
 
     statusElem = document.createElement("div");
     statusElem.className = "Status";
@@ -45,7 +51,10 @@ module onde {
     searchBox.onSelectCard = (cardId) => { edit(cardId); };
 
     createElem.onclick = (e) => {
-      connection.createCard((rsp) => {
+      connection.createCard({
+        type: "card",
+        body: "..."
+      }, (rsp) => {
         edit(rsp.CardId);
       });
     };

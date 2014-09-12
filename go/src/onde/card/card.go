@@ -122,7 +122,7 @@ func newCard(cardId string, done chan<- *Card) (*Card, error) {
 }
 
 // Creates a new, empty card.
-func Create(connId string) (cardId string, err error) {
+func Create(connId string, props map[string]string) (cardId string, err error) {
 	// Create a 64-bit cardid by hashing a combination of the connection id and the unix epoch time in nanos.
 	// Hopefully this is good enough to make collisions extremely unlikely. I really don't want super-long ids.
 	h := fnv.New64a()
@@ -134,8 +134,13 @@ func Create(connId string) (cardId string, err error) {
 	base64.NewEncoder(base64.StdEncoding, cardIdBuf).Write(buf)
 	cardId = cardIdBuf.String()
 
-	empty := ot.NewDoc("")
-	if err = solr.UpdateDoc("onde", cardId, map[string]*ot.Doc{ "body": &empty, }, true); err != nil {
+	newProps := make(map[string]*ot.Doc)
+	for k, v := range props {
+		value := ot.NewDoc(v)
+		newProps[k] = &value
+	}
+
+	if err = solr.UpdateDoc("onde", cardId, newProps, true); err != nil {
 		return "", err
 	}
 
@@ -240,7 +245,10 @@ func (card *Card) run(done chan<- *Card) {
 				return
 			}
 			card.broadcast(update, outchange)
-			card.persist() // TODO: Persist less aggressively.
+			err = card.persist() // TODO: Persist less aggressively.
+			if err != nil {
+				log.Printf("error persisting card: %s", err.Error())
+			}
 		}
 	}
 }
@@ -263,8 +271,8 @@ func (card *Card) broadcast(update cardUpdate, change api.Change) {
 	}
 }
 
-func (card *Card) persist() {
-	solr.UpdateDoc("onde", card.id, card.props, true)
+func (card *Card) persist() error {
+	return solr.UpdateDoc("onde", card.id, card.props, true)
 }
 
 func subKey(connId string, subId int) string {
