@@ -1,0 +1,79 @@
+/* TODO: God, I need to get the bloody SASS compiler integrated. */
+.SearchBox {
+  position: absolute;
+  left: 0;
+  width: 256px;
+  top: 0;
+  bottom: 24px;
+  overflow: auto;
+
+  > .entry {
+    height: 16px;
+    width: 95%;
+    margin-bottom: 8px;
+  }
+
+  .results {
+    > .item {
+      height: 32px;
+      line-height: 32px;
+      overflow: hidden;
+      white-space: nowrap;
+      vertical-align: middle;
+      text-overflow: ellipsis;
+      border-bottom: 1px solid black;
+      cursor: pointer;
+    }
+  }
+}
+
+.TitleEditor {
+  position: absolute;
+  left: 256px; width: 512px;
+  top: 0; bottom: 0; height: 24px;
+}
+
+.AceEditor {
+  position: absolute !important;
+  left: 256px; right: 0;
+  top: 24px; height: 384px;
+}
+
+.CommentList {
+  position: absolute;
+  left: 256px; right: 0;
+  top: 408px; bottom: 24px;
+
+  >.create {
+    position: absolute;
+    right: 0; top: 0;
+  }
+
+  >.editor {
+    position: absolute;
+    left: 0; right: 0;
+    top: 0; height: 24px;
+
+    input {
+      width: 90%;
+    }
+  }
+
+  >.results {
+    position: absolute;
+    left: 0; right: 0;
+    top: 24px; bottom: 0;
+  }
+}
+
+.Status {
+  position: absolute;
+  left: 0; right: 0px;
+  height: 24px; bottom: 0;
+}
+
+.Create {
+  position: absolute;
+  top: 0; right: 0;
+  width: 48px; height: 24px;
+}
