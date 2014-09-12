@@ -16,7 +16,7 @@ module onde {
   // suitable for large amounts of text.
   //
   // Adapted from github.com/share/ShareJS. See original license in LICENSES file.
-  export class TextInputEditor {
+  export class TextInputEditor implements View {
     private _elem: HTMLInputElement;
     private _binding: Binding;
     private _prevValue = "";
@@ -153,7 +153,7 @@ module onde {
   }
 
   // Component that binds an Ace-based text editor to a Card.
-  export class AceEditor {
+  export class AceEditor implements View {
     private _elem: HTMLElement;
     private _ace: Ace.Editor;
     private _session: Ace.IEditSession;

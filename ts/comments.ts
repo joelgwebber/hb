@@ -6,9 +6,9 @@ module onde {
     private _elem: HTMLElement;
     private _results: HTMLElement;
     private _cardId: string;
-    private _sub: connection.SearchSubscription;
+    private _sub: SearchSubscription;
 
-    constructor() {
+    constructor(private _ctx: Context) {
       this._elem = document.createElement("div");
       this._elem.className = "CommentList";
 
@@ -28,7 +28,7 @@ module onde {
       createBtn.className = "create";
       createBtn.textContent = "comment";
       createBtn.onclick = () => {
-        connection.createCard({
+        _ctx.connection().createCard({
           type: "comment",
           target: this._cardId,
           body: editor.value
@@ -53,7 +53,7 @@ module onde {
       }
 
       this._cardId = cardId;
-      this._sub = connection.subscribeSearch(query, (rsp) => {
+      this._sub = this._ctx.connection().subscribeSearch(query, (rsp) => {
         this.render(rsp);
       });
     }

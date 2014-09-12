@@ -3,92 +3,89 @@
 /// <reference path="search.ts" />
 /// <reference path="editor.ts" />
 /// <reference path="comments.ts" />
+/// <reference path="views.ts" />
+/// <reference path="context.ts" />
+/// <reference path="carddetail.ts" />
 
 module onde {
   var DEBUG = true;
 
-  var searchBox: SearchBox;
-  var card: Card;
-  var titleEditor: TextInputEditor;
-  var aceEditor: AceEditor;
-  var commentList: CommentList;
-  var statusElem;
-  var createElem;
+  class Onde extends TemplateView implements Context {
+    private _connection: Connection;
 
-  function edit(cardId: string) {
-    if (card) {
-      card.release();
+    private _searchBox: SearchBox;
+    private _cardDetail: CardDetail;
+    private _statusElem;
+    private _createElem;
+
+    constructor() {
+      super("Onde");
+
+      this._connection = new Connection(this);
+
+      this._statusElem = this.$(".status");
+      this._createElem = this.$(".create");
+
+      this._searchBox = new SearchBox(this);
+      this._cardDetail = new CardDetail(this);
+
+      var container = this.$(".container");
+      container.appendChild(this._searchBox.elem());
+      container.appendChild(this._cardDetail.elem());
+
+      this._searchBox.onSelectCard = (cardId) => {
+        this._cardDetail.setCardId(cardId);
+      };
+
+      this._createElem.onclick = (e) => {
+        this.connection().createCard({
+          type: "card",
+          body: "..."
+        }, (rsp) => {
+          this._cardDetail.setCardId(rsp.CardId);
+        });
+      };
+
+      this.connection().onOpen = () => { this.onOpen(); };
+      this.connection().onClose = () => { this.onClose(); };
+      this.connection().onLogin = () => { this.onLogin(); };
+      this.connection().connect();
     }
-    card = new Card(cardId);
-    aceEditor.bind(card, "body");
-    titleEditor.bind(card, "title");
-    commentList.setCardId(cardId);
+
+    log(msg: any) {
+      if (DEBUG) {
+        console.log(msg)
+      }
+    }
+
+    connection(): Connection {
+      return this._connection;
+    }
+
+    private setStatus(msg: string) {
+      this._statusElem.textContent = msg;
+    }
+
+    private onOpen() {
+      this.log("connection open");
+      this.setStatus("connected");
+      this.connection().login("joel");
+    }
+
+    private onClose() {
+      this.log("connection closed; refresh to reconnect for now");
+//    log("connection closed; reconnecting in 1s");
+//    setStatus("disconnected");
+//    setTimeout(() => { this.connection().connect(); }, 1000);
+    }
+
+    private onLogin() {
+      this.setStatus("logged in");
+    }
   }
 
   export function main() {
-    searchBox = new SearchBox();
-    document.body.appendChild(searchBox.elem());
-
-    titleEditor = new TextInputEditor();
-    titleEditor.elem().className = "TitleEditor";
-    document.body.appendChild(titleEditor.elem());
-
-    aceEditor = new AceEditor();
-    document.body.appendChild(aceEditor.elem());
-
-    commentList = new CommentList();
-    document.body.appendChild(commentList.elem());
-
-    statusElem = document.createElement("div");
-    statusElem.className = "Status";
-    document.body.appendChild(statusElem);
-
-    createElem = document.createElement("button");
-    createElem.className = "Create";
-    createElem.textContent = "create";
-    document.body.appendChild(createElem);
-
-    searchBox.onSelectCard = (cardId) => { edit(cardId); };
-
-    createElem.onclick = (e) => {
-      connection.createCard({
-        type: "card",
-        body: "..."
-      }, (rsp) => {
-        edit(rsp.CardId);
-      });
-    };
-
-    connection.onOpen = onOpen;
-    connection.onClose = onClose;
-    connection.onLogin = onLogin;
-    connection.connect();
-  }
-
-  export function log(msg: any) {
-    if (DEBUG) {
-      console.log(msg)
-    }
-  }
-
-  function setStatus(msg: string) {
-    statusElem.textContent = msg;
-  }
-
-  function onOpen() {
-    log("connection open");
-    setStatus("connected");
-    connection.login("joel");
-  }
-
-  function onClose() {
-    log("connection closed; refresh to reconnect for now");
-//    log("connection closed; reconnecting in 1s");
-//    setStatus("disconnected");
-//    setTimeout(connection.connect, 1000);
-  }
-
-  function onLogin() {
-    setStatus("logged in");
+    var onde = new Onde();
+    document.body.appendChild(onde.elem());
   }
 }

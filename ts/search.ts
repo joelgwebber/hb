@@ -1,31 +1,23 @@
 /// <reference path="connection.ts" />
+/// <reference path="views.ts" />
 
 module onde {
 
-  export class SearchBox {
-    private _elem: HTMLElement;
+  export class SearchBox extends TemplateView {
     private _input: HTMLInputElement;
     private _results: HTMLElement;
-    private _sub: connection.SearchSubscription;
+    private _sub: SearchSubscription;
 
     onSelectCard: (cardId: string) => void;
 
-    constructor() {
-      this._elem = document.createElement("div");
-      this._elem.className = "SearchBox";
-      this._input = document.createElement("input");
-      this._input.className = "entry";
-      this._results = document.createElement("div");
-      this._results.className = "results";
-
-      this._elem.appendChild(this._input);
-      this._elem.appendChild(this._results);
-
-      this._input.onchange = (e) => { this.search(this._input.value); }
-    }
-
-    elem(): HTMLElement {
-      return this._elem;
+    constructor(private _ctx: Context) {
+      super("SearchBox");
+      this._input = <HTMLInputElement>this.$(".entry");
+      this._results = this.$(".results");
+      (<HTMLInputElement> this.elem()).onsubmit = (e) => {
+        this.search(this._input.value);
+        e.preventDefault();
+      };
     }
 
     search(query: string) {
@@ -36,7 +28,7 @@ module onde {
         this._sub.unsubscribe();
       }
 
-      this._sub = connection.subscribeSearch(query, (rsp) => {
+      this._sub = this._ctx.connection().subscribeSearch(query, (rsp) => {
         this.render(rsp);
       });
     }

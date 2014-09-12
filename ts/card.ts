@@ -29,12 +29,12 @@ module onde {
     private _wait: {[prop: string]: any[]} = {};
     private _buf: {[prop: string]: any[]} = {};
     private _props: {[prop: string]: string} = {};
-    private _sub: connection.CardSubscription;
+    private _sub: CardSubscription;
     private _rev = -1;
     private _bindings: {[prop: string]: Binding} = {};
 
-    constructor(private _docId: string) {
-      this._sub = connection.subscribeCard(_docId,
+    constructor(ctx: Context, private _docId: string) {
+      this._sub = ctx.connection().subscribeCard(_docId,
           (rsp: SubscribeCardRsp) => {
             this._rev = rsp.Rev;
             this._props = rsp.Props;
