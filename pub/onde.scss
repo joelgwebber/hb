@@ -2,6 +2,20 @@ body {
   font-family: HelveticaNeue, Helvetica, sans-serif;
 }
 
+@mixin ellipsify($width, $font-size, $line-height, $lines) {
+  display: block; /* Fallback for non-webkit */
+  display: -webkit-box;
+  max-width: $width;
+  height: $font-size * $line-height * $lines; /* Fallback for non-webkit */
+  margin: 0 auto;
+  font-size: $font-size;
+  line-height: $line-height;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .Onde {
   > .container {
   }
@@ -53,15 +67,14 @@ body {
   padding: 4px;
 
   > .title {
-    height: 40px;
+    @include ellipsify(235, 16px, 1.2, 2);
     overflow: hidden;
     margin-bottom: 8px;
   }
 
   > .body {
-    height: 64px;
+    @include ellipsify(235, 12px, 1.2, 5);
     overflow: hidden;
-    font-size: 12px;
     color: #888;
   }
 }
@@ -75,7 +88,7 @@ body {
   background-color: white;
   border: 1px solid black;
 
-  > .close-icon {
+  > .close {
     position: absolute;
     width: 16px;
     height: 16px;
@@ -88,54 +101,81 @@ body {
     cursor: pointer;
   }
 
-  > .TitleEditor {
+  > .done-label {
+    position: absolute;
+    top: 0;
+    right: 8px;
+    width: 64px;
+    font-size: 12px;
+
+    > .done {
+    }
+  }
+
+  > .title {
     position: absolute;
     left: 0;
-    width: 512px;
+    right: 80px;
     top: 0;
     bottom: 0;
-    height: 24px;
+    height: 32px;
+
+    > input {
+      width: 100%;
+      line-height: 24px;
+      font-size: 16px;
+    }
   }
 
-  > .AceEditor {
-    position: absolute !important;
-    left: 0;
-    right: 0;
-    top: 24px;
-    height: 384px;
-  }
-
-  > .CommentList {
+  > .body {
     position: absolute;
     left: 0;
     right: 0;
-    top: 408px;
+    top: 40px;
+    height: 384px;
+
+    > .AceEditor {
+      position: absolute !important;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+  }
+
+  > .comments {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 432px;
     bottom: 0;
 
-    > .create {
-      position: absolute;
-      right: 0;
-      top: 0;
-    }
-
-    > .editor {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: 24px;
-
-      input {
-        width: 90%;
+    > .CommentList {
+      > .create {
+        position: absolute;
+        right: 0;
+        top: 0;
       }
-    }
 
-    > .results {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 24px;
-      bottom: 0;
+      > .editor {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 24px;
+
+        input {
+          width: 90%;
+        }
+      }
+
+      > .results {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 24px;
+        bottom: 0;
+      }
     }
   }
 }

@@ -62,7 +62,7 @@ module onde {
   // element passed to its constructor. This will typically be used with a "fill" style --
   // e.g., { position:absolute; left-top-right-bottom:0 }.
   //
-  // This class will look for a child with the selector .close-icon, and if found will use
+  // This class will look for a child with the selector .close, and if found will use
   // it as a close button.
   //
   // TODO(jgw): Implement auto-hide tracking here so we can make it easy to ensure that
@@ -75,8 +75,8 @@ module onde {
     constructor(id: string, private _container: HTMLElement = null) {
       super(id);
 
-      if (this.hasChild('.close-icon')) {
-        this.$('.close-icon').onclick = () => { this.hide(); };
+      if (this.hasChild('.close')) {
+        this.$('.close').onclick = () => { this.hide(); };
       }
 
       // By default, put the dialog box on the body element, and show 'glass' underneath.

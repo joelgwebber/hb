@@ -11,6 +11,51 @@
 
 module onde {
 
+  // Very simple editor that binds a checkbox to a "true/false" property.
+  // If this editor finds it changed to something other than true/false, it will treat it as "false".
+  // TODO: Implement simple typed properties so we can drop all this stupid stringly-typed code.
+  export class CheckboxEditor implements View {
+    private _elem: HTMLInputElement;
+    private _card: Card;
+    private _prop: string;
+    private _binding: Binding;
+
+    constructor() {
+      this._elem = <HTMLInputElement>document.createElement("input");
+      this._elem.type = "checkbox";
+      this._elem.onchange = () => {
+        // Construct ops that clobber the whole value by deleting everything first.
+        var value = this._elem.checked ? "true" : "false";
+        var len = this._card.prop(this._prop).length;
+        this._binding.revise([0, -len, value]);
+      };
+    }
+
+    elem(): HTMLInputElement {
+      return this._elem;
+    }
+
+    bind(card: Card, prop: string) {
+      this._card = card;
+      this._prop = prop;
+
+      // Release any old binding.
+      if (this._binding) {
+        this._binding.release();
+      }
+
+      // _merge guards against op feedback loops.
+      this._binding = card.bind(prop, (value) => {
+        this._elem.checked = value == "true";
+      }, (ops) => {
+        // Skip the ops and just use the value directly.
+        // We don't care about partial edits, which should never occur anyway.
+        var value = card.prop(prop);
+        this._elem.checked = value == "true";
+      })
+    }
+  }
+
   // Simple editor that handles <input type=text> and <textarea> elements.
   // It's generates mutations using a naïve O(N) diff algorithm, and is thus not
   // suitable for large amounts of text.

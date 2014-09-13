@@ -5,6 +5,7 @@ module onde {
 
   export class CardDetail extends Dialog {
     private _titleEditor: TextInputEditor;
+    private _doneEditor: CheckboxEditor;
     private _aceEditor: AceEditor;
     private _commentList: CommentList;
     private _card: Card;
@@ -13,13 +14,14 @@ module onde {
       super("CardDetail");
 
       this._titleEditor = new TextInputEditor();
-      this._titleEditor.elem().className = "TitleEditor";
+      this._doneEditor = new CheckboxEditor();
       this._aceEditor = new AceEditor();
       this._commentList = new CommentList(_ctx);
 
-      this.elem().appendChild(this._titleEditor.elem());
-      this.elem().appendChild(this._aceEditor.elem());
-      this.elem().appendChild(this._commentList.elem());
+      this.$(".title").appendChild(this._titleEditor.elem());
+      this.$(".done-label").insertBefore(this._doneEditor.elem(), this.$(".done-label").firstChild);
+      this.$(".body").appendChild(this._aceEditor.elem());
+      this.$(".comments").appendChild(this._commentList.elem());
 
       this._commentList.setCardId(this._cardId);
     }
@@ -29,8 +31,9 @@ module onde {
         return;
       }
       this._card = new Card(this._ctx, this._cardId);
-      this._aceEditor.bind(this._card, "body");
       this._titleEditor.bind(this._card, "title");
+      this._doneEditor.bind(this._card, "done");
+      this._aceEditor.bind(this._card, "body");
       super.show();
     }
 
