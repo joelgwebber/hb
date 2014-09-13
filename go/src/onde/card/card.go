@@ -112,8 +112,7 @@ func newCard(cardId string, done chan<- *Card) (*Card, error) {
 	solrMap := map[string]interface{}(solrDoc)
 	for k, v := range solrMap {
 		if strings.HasPrefix(k, "prop_") {
-			value := ot.NewDoc(v.(string))
-			card.props[k[5:]] = &value
+			card.props[k[5:]] = ot.NewDoc(v.(string))
 		}
 	}
 
@@ -136,8 +135,7 @@ func Create(connId string, props map[string]string) (cardId string, err error) {
 
 	newProps := make(map[string]*ot.Doc)
 	for k, v := range props {
-		value := ot.NewDoc(v)
-		newProps[k] = &value
+		newProps[k] = ot.NewDoc(v)
 	}
 
 	if err = solr.UpdateDoc("onde", cardId, newProps, true); err != nil {
@@ -177,8 +175,7 @@ func (card *Card) Recv(rev int, change api.Change) (api.Change, error) {
 	// TODO: Should we delete card entries when they become empty, or only do it during serialization?
 	prop, exists := card.props[change.Prop]
 	if !exists {
-		empty := ot.NewDoc("")
-		prop = &empty
+		prop = ot.NewDoc("")
 		card.props[change.Prop] = prop
 	}
 

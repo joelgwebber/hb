@@ -1,10 +1,14 @@
 package onde
 
-import "onde/solr"
+import (
+	"onde/solr"
+	"net/http"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
+)
 
 func init() {
 	solr.EnsureCore("onde")
 
-	makeUser("joel")
-	makeUser("anais")
+	http.Handle("/sock/", sockjs.NewHandler("/sock", sockjs.DefaultOptions, sockHandler))
+	http.Handle("/admin/new-user", http.HandlerFunc(newUserHandler))
 }

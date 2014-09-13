@@ -39,6 +39,7 @@ type Req struct {
 
 type LoginReq struct {
 	UserId string
+	Password string
 }
 
 type SubscribeCardReq struct {

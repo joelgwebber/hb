@@ -12,8 +12,9 @@ import (
 // Doc represents a text document.
 type Doc []byte
 
-func NewDoc(text string) Doc {
-	return Doc([]byte(text))
+func NewDoc(text string) *Doc {
+	doc := Doc([]byte(text))
+	return &doc
 }
 
 func (doc Doc) String() string {

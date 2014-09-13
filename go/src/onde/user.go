@@ -1,13 +1,20 @@
 package onde
 
-var users = make(map[string]*User)
+import (
+	"onde/solr"
+	"onde/ot"
+)
 
-type User struct {
-	id string
+func FindUser(id string) (solr.JsonObject, error) {
+	return solr.GetDoc("onde", solrId(id))
 }
 
-func makeUser(id string) {
-	users[id] = &User{
-		id: id,
-	}
+func NewUser(id, pass string) (error) {
+	return solr.UpdateDoc("onde", solrId(id), map[string]*ot.Doc{
+			"pass": ot.NewDoc(pass), // TODO: hash this. This looks like a promising guide: https://crackstation.net/hashing-security.htm
+		}, true)
+}
+
+func solrId(id string) string {
+	return "user/" + id
 }

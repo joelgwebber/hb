@@ -1,14 +1,12 @@
 package main
 
 import (
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
 	"log"
-	"onde"
+	_ "onde" // Other handlers and initialization are done in onde's init().
 )
 
 func main() {
-	http.Handle("/sock/", sockjs.NewHandler("/sock", sockjs.DefaultOptions, onde.SockHandler))
 	http.Handle("/", http.FileServer(http.Dir("pub")))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

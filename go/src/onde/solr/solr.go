@@ -30,6 +30,9 @@ const (
 	SolrUpdateHandler        = "update"
 )
 
+var ErrorNotFound = errors.New("no document found")
+var ErrorTooMany = errors.New("found more than one document")
+
 // Performs a soft commit on Solr, ensuring that the latest updates are availabe to queries.
 func SoftCommit(orgId string) error {
 	if _, err := get(orgId, SolrUpdateHandler, url.Values{
@@ -81,14 +84,15 @@ func CoreExists(orgId string) (bool, error) {
 func GetDoc(orgId, key string) (JsonObject, error) {
 	params := url.Values{
 		"q":    []string{fmt.Sprintf("id:%s", key)},
-		"rows": []string{"1"},
 	}
 	count, docs, err := GetDocs(orgId, params)
 	if err != nil {
 		return nil, err
 	}
-	if count != 1 {
-		return nil, errors.New("expected a single document")
+	if count == 0 {
+		return nil, ErrorNotFound
+	} else if count > 1 {
+		return nil, ErrorTooMany
 	}
 	return docs[0], nil
 }

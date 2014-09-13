@@ -31,6 +31,7 @@ module onde {
 
   export interface LoginReq {
     UserId: string;
+    Password: string;
   }
 
   export interface SubscribeCardReq {

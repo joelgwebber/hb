@@ -19,7 +19,7 @@ module onde {
     private _statusElem;
     private _createElem;
 
-    constructor() {
+    constructor(private _user: string, private _pass: string) {
       super("Onde");
 
       this._connection = new Connection(this);
@@ -78,7 +78,7 @@ module onde {
     private onOpen() {
       this.log("connection open");
       this.setStatus("connected");
-      this.connection().login("joel");
+      this.connection().login(this._user, this._pass);
     }
 
     private onClose() {
@@ -99,8 +99,27 @@ module onde {
     }
   }
 
+  function parseQuery(): { [param: string]: string } {
+    var parts = location.search.substring(1).split("&");
+    var result = {};
+    for (var i = 0; i < parts.length; ++i) {
+      var kv = parts[i].split("=");
+      result[kv[0]] = kv[1];
+    }
+    return result;
+  }
+
   export function main() {
-    var onde = new Onde();
+    // Quick hack to do user/pass
+    var params = parseQuery();
+    var user = params["user"];
+    var pass = params["pass"];
+    if (!user || !pass) {
+      window.alert("Remember to use ?user=...&pass=... on the query string");
+      return;
+    }
+
+    var onde = new Onde(user, pass);
     document.body.appendChild(onde.elem());
   }
 }

@@ -9,16 +9,17 @@ import (
 	"onde/card"
 	"onde/search"
 	"strings"
+	"onde/solr"
 )
 
 type Connection struct {
-	user       *User
+	user       solr.JsonObject
 	sock       sockjs.Session
 	cardSubs    map[int]*card.Card // subId -> Card
 	searchSubs map[string]*search.Search  // query -> Search
 }
 
-func SockHandler(sock sockjs.Session) {
+func sockHandler(sock sockjs.Session) {
 	log.Printf("new connection: %s", sock.ID())
 
 	var conn *Connection
@@ -36,13 +37,19 @@ func SockHandler(sock sockjs.Session) {
 			switch req.Type {
 			case MsgLogin:
 				userId := req.Login.UserId
-				user := users[userId]
-				if user == nil {
+				user, err := FindUser(userId)
+				if err != nil {
 					ErrorRsp{Msg: fmt.Sprintf("Invalid user id: %s", userId)}.Send(sock)
-				} else {
-					conn = newConnection(user, sock)
-					LoginRsp{UserId: req.Login.UserId, ConnId: conn.Id()}.Send(sock)
+					continue
 				}
+				pass := user.GetString("prop_pass")
+				log.Printf("pass: %v", pass)
+				if pass != nil && req.Login.Password != *pass {
+					ErrorRsp{Msg: fmt.Sprintf("Incorrect password for user: %s", userId)}.Send(sock)
+					continue
+				}
+				conn = newConnection(user, sock)
+				LoginRsp{UserId: req.Login.UserId, ConnId: conn.Id()}.Send(sock)
 
 			case MsgSubscribeCard:
 				if conn.validate(sock) {
@@ -191,7 +198,7 @@ func (conn *Connection) cleanupSubs() {
 	}
 }
 
-func newConnection(user *User, sock sockjs.Session) *Connection {
+func newConnection(user solr.JsonObject, sock sockjs.Session) *Connection {
 	return &Connection{
 		user:       user,
 		sock:       sock,

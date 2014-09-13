@@ -98,10 +98,13 @@ module onde {
       return this._connId;
     }
 
-    login(userId: string) {
+    login(userId: string, password: string) {
       var req: Req = {
         Type: MsgLogin,
-        Login: { UserId: userId }
+        Login: {
+          UserId: userId,
+          Password: password
+        }
       };
       this._send(req);
     }
