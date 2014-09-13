@@ -19,7 +19,7 @@
     <fieldType name="int32"   class="solr.TrieIntField"    multiValued="false" indexed="true" stored="true" docValues="true"  sortMissingLast="true" termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="0"/>
     <fieldType name="float64" class="solr.TrieDoubleField" multiValued="false" indexed="true" stored="true" docValues="true"  sortMissingLast="true" termVectors="false" omitNorms="true" omitTermFreqAndPositions="true" precisionStep="4"/>
 
-    <fieldType name="text_general" class="solr.TextField"       multiValued="false" indexed="true"  stored="true"   docValues="false"   sortMissingLast="true"  termVectors="false">
+    <fieldType name="text_general" class="solr.TextField"  multiValued="false" indexed="true" stored="true" docValues="false" sortMissingLast="true" termVectors="false">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>

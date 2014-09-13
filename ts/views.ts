@@ -70,8 +70,9 @@ module onde {
   export class Dialog extends TemplateView implements Pane {
     private _showGlass = false;
     private _glass: HTMLElement;
+    private _showing = false;
 
-    constructor(id: string, private _container: HTMLElement= null) {
+    constructor(id: string, private _container: HTMLElement = null) {
       super(id);
 
       if (this.hasChild('.close-icon')) {
@@ -85,7 +86,16 @@ module onde {
       }
     }
 
+    showing(): boolean {
+      return this._showing;
+    }
+
     show() {
+      if (this._showing) {
+        return;
+      }
+      this._showing = true;
+
       if (this._showGlass) {
         this._glass = document.createElement('div');
         this._glass.className = 'DialogGlass';
@@ -96,6 +106,11 @@ module onde {
     }
 
     hide() {
+      if (!this._showing) {
+        return;
+      }
+      this._showing = false;
+
       if (this._container.contains(<HTMLElement>this.elem())) this._container.removeChild(<HTMLElement>this.elem());
       if (this._showGlass) {
         this._container.removeChild(this._glass);

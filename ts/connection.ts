@@ -2,11 +2,11 @@
 
 // TODO:
 // - Implement outgoing message queue.
-// - Re-establish connection automatically.
+// - Re-establish connection automatically (reestablish subscriptions so UI doesn't have to).
 // - Track acknowledged requests.
 module onde {
 
-  var LOG_MESSAGES = true;
+  var LOG_MESSAGES = false;
 
   export class CardSubscription {
     _subId: number;

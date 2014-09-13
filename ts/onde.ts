@@ -1,7 +1,6 @@
 /// <reference path="api.ts" />
 /// <reference path="connection.ts" />
 /// <reference path="search.ts" />
-/// <reference path="editor.ts" />
 /// <reference path="comments.ts" />
 /// <reference path="views.ts" />
 /// <reference path="context.ts" />
@@ -13,8 +12,8 @@ module onde {
   class Onde extends TemplateView implements Context {
     private _connection: Connection;
 
+    private _detail: CardDetail;
     private _searchBox: SearchBox;
-    private _cardDetail: CardDetail;
     private _statusElem;
     private _createElem;
 
@@ -27,22 +26,18 @@ module onde {
       this._createElem = this.$(".create");
 
       this._searchBox = new SearchBox(this);
-      this._cardDetail = new CardDetail(this);
 
       var container = this.$(".container");
       container.appendChild(this._searchBox.elem());
-      container.appendChild(this._cardDetail.elem());
 
-      this._searchBox.onSelectCard = (cardId) => {
-        this._cardDetail.setCardId(cardId);
-      };
+      this._searchBox.onSelectCard = (cardId) => { this.showCardDetail(cardId); };
 
       this._createElem.onclick = (e) => {
         this.connection().createCard({
           type: "card",
           body: "..."
         }, (rsp) => {
-          this._cardDetail.setCardId(rsp.CardId);
+          this.showCardDetail(rsp.CardId);
         });
       };
 
@@ -62,6 +57,14 @@ module onde {
       return this._connection;
     }
 
+    private showCardDetail(cardId: string) {
+      if (this._detail) {
+        this._detail.hide();
+      }
+      this._detail = new CardDetail(this, cardId);
+      this._detail.show();
+    }
+
     private setStatus(msg: string) {
       this._statusElem.textContent = msg;
     }
@@ -74,6 +77,8 @@ module onde {
 
     private onClose() {
       this.log("connection closed; refresh to reconnect for now");
+
+// TODO: Reconnection logic doesn't work yet, so don't bother trying.
 //    log("connection closed; reconnecting in 1s");
 //    setStatus("disconnected");
 //    setTimeout(() => { this.connection().connect(); }, 1000);
@@ -81,6 +86,10 @@ module onde {
 
     private onLogin() {
       this.setStatus("logged in");
+      if (!this._searchBox.curQuery()) {
+        // Do a default search to get the ball rolling.
+        this._searchBox.search("prop_type:card prop_title:* prop_body:*");
+      }
     }
   }
 

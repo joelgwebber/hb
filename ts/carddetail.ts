@@ -1,12 +1,15 @@
+/// <reference path="editor.ts" />
+/// <reference path="card.ts" />
+
 module onde {
 
-  export class CardDetail extends TemplateView {
+  export class CardDetail extends Dialog {
     private _titleEditor: TextInputEditor;
     private _aceEditor: AceEditor;
     private _commentList: CommentList;
     private _card: Card;
 
-    constructor(private _ctx: Context) {
+    constructor(private _ctx: Context, private _cardId: string) {
       super("CardDetail");
 
       this._titleEditor = new TextInputEditor();
@@ -17,16 +20,27 @@ module onde {
       this.elem().appendChild(this._titleEditor.elem());
       this.elem().appendChild(this._aceEditor.elem());
       this.elem().appendChild(this._commentList.elem());
+
+      this._commentList.setCardId(this._cardId);
     }
 
-    setCardId(cardId: string) {
-      if (this._card) {
-        this._card.release();
+    show() {
+      if (this.showing()) {
+        return;
       }
-      this._card = new Card(this._ctx, cardId);
+      this._card = new Card(this._ctx, this._cardId);
       this._aceEditor.bind(this._card, "body");
       this._titleEditor.bind(this._card, "title");
-      this._commentList.setCardId(cardId);
+      super.show();
+    }
+
+    hide() {
+      if (!this.showing()) {
+        return;
+      }
+      super.hide();
+      this._card.release();
+      this._card = null;
     }
   }
 }

@@ -3,6 +3,15 @@
 
 module onde {
 
+  class SearchCard extends TemplateView {
+
+    constructor(result: SearchResult) {
+      super("SearchCard");
+      this.$(".title").textContent = result.Title;
+      this.$(".body").textContent = result.Body;
+    }
+  }
+
   export class SearchBox extends TemplateView {
     private _input: HTMLInputElement;
     private _results: HTMLElement;
@@ -20,7 +29,15 @@ module onde {
       };
     }
 
+    curQuery(): string {
+      if (!this._sub) {
+        return "";
+      }
+      return this._sub.query;
+    }
+
     search(query: string) {
+      this._input.value = query;
       if (this._sub) {
         if (this._sub.query == query) {
           return;
@@ -41,11 +58,9 @@ module onde {
     }
 
     private createItem(result: SearchResult): HTMLElement {
-      var item = document.createElement("div");
-      item.className = "item";
-      item.textContent = result.Title;
-      item.onclick = (e) => { this.selectItem(result.CardId); };
-      return item;
+      var item = new SearchCard(result);
+      item.elem().onclick = (e) => { this.selectItem(result.CardId); };
+      return item.elem();
     }
 
     private selectItem(cardId: string) {
