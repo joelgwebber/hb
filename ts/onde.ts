@@ -5,6 +5,7 @@
 /// <reference path="views.ts" />
 /// <reference path="context.ts" />
 /// <reference path="carddetail.ts" />
+/// <reference path="savedsearches.ts" />
 
 module onde {
   var DEBUG = true;
@@ -12,8 +13,9 @@ module onde {
   class Onde extends TemplateView implements Context {
     private _connection: Connection;
 
-    private _detail: CardDetail;
+    private _savedSearches: SavedSearches;
     private _searchBox: SearchBox;
+    private _detail: CardDetail;
     private _statusElem;
     private _createElem;
 
@@ -25,9 +27,11 @@ module onde {
       this._statusElem = this.$(".status");
       this._createElem = this.$(".create");
 
+      this._savedSearches = new SavedSearches(this);
       this._searchBox = new SearchBox(this);
 
       var container = this.$(".container");
+      container.appendChild(this._savedSearches.elem());
       container.appendChild(this._searchBox.elem());
 
       this._searchBox.onSelectCard = (cardId) => { this.showCardDetail(cardId); };
@@ -40,6 +44,8 @@ module onde {
           this.showCardDetail(rsp.CardId);
         });
       };
+
+      this._savedSearches.onSearch = (search) => { this._searchBox.search(search); };
 
       this.connection().onOpen = () => { this.onOpen(); };
       this.connection().onClose = () => { this.onClose(); };

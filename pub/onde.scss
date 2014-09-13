@@ -37,9 +37,26 @@ body {
   }
 }
 
+.SavedSearches {
+  position: absolute;
+  top: 0;
+  bottom: 24px;
+  left: 0;
+  width: 192px;
+
+  a {
+    color: black;
+    display: block;
+    text-overflow: ellipsis;
+  }
+  a:visited {
+    color: black;
+  }
+}
+
 .SearchBox {
   position: absolute;
-  left: 0;
+  left: 192px;
   right: 0;
   top: 0;
   bottom: 24px;
