@@ -16,15 +16,16 @@ module onde {
       this._results.className = "results";
       this._elem.appendChild(this._results);
 
-      var editor = document.createElement('input');
+      var editor = document.createElement("textarea");
+      editor.setAttribute("rows", "4");
       this._elem.appendChild(editor);
 
-      var editContainer = document.createElement('div');
-      editContainer.className = 'editor';
+      var editContainer = document.createElement("div");
+      editContainer.className = "editor";
       this._elem.appendChild(editContainer);
       editContainer.appendChild(editor);
 
-      var createBtn = document.createElement('button');
+      var createBtn = document.createElement("button");
       createBtn.className = "create";
       createBtn.textContent = "comment";
       createBtn.onclick = () => {

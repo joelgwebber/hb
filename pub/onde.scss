@@ -150,14 +150,6 @@ body {
     right: 0;
     top: 40px;
     height: 384px;
-
-    > .AceEditor {
-      position: absolute !important;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-    }
   }
 
   > .comments {
@@ -166,34 +158,42 @@ body {
     right: 0;
     top: 432px;
     bottom: 0;
+  }
+}
 
-    > .CommentList {
-      > .create {
-        position: absolute;
-        right: 0;
-        top: 0;
-      }
+.AceEditor {
+  position: absolute !important;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
 
-      > .editor {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        height: 24px;
+.CommentList {
+  > .create {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
 
-        input {
-          width: 90%;
-        }
-      }
+  > .editor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 24px;
 
-      > .results {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 24px;
-        bottom: 0;
-      }
+    > textarea {
+      width: 90%;
     }
+  }
+
+  > .results {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 64px;
+    bottom: 0;
   }
 }
 
