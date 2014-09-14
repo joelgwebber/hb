@@ -11,6 +11,35 @@
 
 module onde {
 
+  export class TextViewer implements View {
+    private _binding: Binding;
+
+    constructor(private _elem: HTMLElement) {
+    }
+
+    bind(card: Card, prop: string) {
+      this.unbind();
+
+      this._binding = card.bind(prop, (value) => {
+        this._elem.textContent = value;
+      }, (ops) => {
+        // Skip the ops and just use the value directly.
+        this._elem.textContent = card.prop(prop);
+      });
+    }
+
+    unbind() {
+      if (this._binding) {
+        this._binding.release();
+        this._binding = null;
+      }
+    }
+
+    elem(): HTMLElement {
+      return this._elem;
+    }
+  }
+
   // Very simple editor that binds a checkbox to a "true/false" property.
   // If this editor finds it changed to something other than true/false, it will treat it as "false".
   // TODO: Implement simple typed properties so we can drop all this stupid stringly-typed code.
@@ -39,12 +68,8 @@ module onde {
       this._card = card;
       this._prop = prop;
 
-      // Release any old binding.
-      if (this._binding) {
-        this._binding.release();
-      }
+      this.unbind();
 
-      // _merge guards against op feedback loops.
       this._binding = card.bind(prop, (value) => {
         this._elem.checked = value == "true";
       }, (ops) => {
@@ -52,7 +77,14 @@ module onde {
         // We don't care about partial edits, which should never occur anyway.
         var value = card.prop(prop);
         this._elem.checked = value == "true";
-      })
+      });
+    }
+
+    unbind() {
+      if (this._binding) {
+        this._binding.release();
+        this._binding = null;
+      }
     }
   }
 
@@ -81,10 +113,7 @@ module onde {
     }
 
     bind(card: Card, prop: string) {
-      // Release any old binding.
-      if (this._binding) {
-        this._binding.release();
-      }
+      this.unbind();
 
       // _merge guards against op feedback loops.
       this._binding = card.bind(prop, (value) => {
@@ -96,6 +125,13 @@ module onde {
         this.applyOps(ops);
         this._merge = false;
       })
+    }
+
+    unbind() {
+      if (this._binding) {
+        this._binding.release();
+        this._binding = null;
+      }
     }
 
     private genOp(e: Event) {
@@ -237,10 +273,7 @@ module onde {
     }
 
     bind(card: Card, prop: string) {
-      // Release any old binding.
-      if (this._binding) {
-        this._binding.release();
-      }
+      this.unbind();
 
       // _merge guards against op feedback loops.
       this._binding = card.bind(prop, (value) => {
@@ -252,6 +285,13 @@ module onde {
         applyOps(this._acedoc, ops);
         this._merge = false;
       })
+    }
+
+    unbind() {
+      if (this._binding) {
+        this._binding.release();
+        this._binding = null;
+      }
     }
   }
 

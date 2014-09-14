@@ -121,35 +121,65 @@ body {
   > .done-label {
     position: absolute;
     top: 0;
-    right: 8px;
-    width: 64px;
+    right: 20px;
+    width: 48px;
     font-size: 12px;
 
     > .done {
     }
   }
 
-  > .title {
+  > .edit-mode {
     position: absolute;
-    left: 0;
-    right: 80px;
     top: 0;
-    bottom: 0;
-    height: 32px;
+    right: 70px;
+    width: 42px;
+  }
 
-    > input {
-      width: 100%;
+  > .display {
+    > .title {
+      position: absolute;
+      left: 0;
+      right: 120px;
+      top: 0;
+      height: 32px;
       line-height: 24px;
       font-size: 16px;
     }
+
+    > .body {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 40px;
+      height: 384px;
+    }
   }
 
-  > .body {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 40px;
-    height: 384px;
+  > .edit {
+    display: none;
+
+    > .title {
+      position: absolute;
+      left: 0;
+      right: 120px;
+      top: 0;
+      height: 32px;
+
+      > input {
+        width: 100%;
+        line-height: 24px;
+        font-size: 16px;
+      }
+    }
+
+    > .body {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 40px;
+      height: 384px;
+    }
   }
 
   > .comments {
