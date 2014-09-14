@@ -8,8 +8,12 @@ module onde {
 
       // TODO: Make all this dynamic.
       this.addItem("All cards", "prop_type:card");
-      this.addItem("Uncompleted cards", "prop_type:card -prop_done:true");
-      this.addItem("Completed cards", "prop_type:card prop_done:true");
+      this.addItem("Undesignated cards", "prop_type:card -prop_kind:effort -prop_kind:note -prop_kind:idea");
+      this.addItem("Notes", "prop_type:card prop_kind:note");
+      this.addItem("Ideas", "prop_type:card prop_kind:idea");
+      this.addItem("Efforts", "prop_type:card prop_kind:effort");
+      this.addItem("Uncompleted efforts", "prop_type:card prop_kind:effort -prop_done:true");
+      this.addItem("Completed efforts", "prop_type:card prop_kind:effort prop_done:true");
     }
 
     private addItem(name: string, search: string) {
