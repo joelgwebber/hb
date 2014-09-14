@@ -1,5 +1,6 @@
 body {
   font-family: HelveticaNeue, Helvetica, sans-serif;
+  font-size: 14px;
 }
 
 @mixin ellipsify($width, $font-size, $line-height, $lines) {

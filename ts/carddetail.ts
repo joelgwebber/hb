@@ -1,11 +1,12 @@
 /// <reference path="editors.ts" />
+/// <reference path="viewers.ts" />
 /// <reference path="card.ts" />
 
 module onde {
 
   export class CardDetail extends Dialog {
     private _titleViewer: TextViewer;
-    private _bodyViewer: TextViewer;
+    private _bodyViewer: MarkViewer;
     private _titleEditor: TextInputEditor;
     private _bodyEditor: AceEditor;
     private _doneEditor: CheckboxEditor;
@@ -22,7 +23,7 @@ module onde {
       this._commentList = new CommentList(_ctx);
 
       this._titleViewer = new TextViewer(this.$('.display > .title'));
-      this._bodyViewer = new TextViewer(this.$('.display > .body'));
+      this._bodyViewer = new MarkViewer(this.$('.display > .body'));
 
       this.$(".edit > .title").appendChild(this._titleEditor.elem());
       this.$(".edit > .body").appendChild(this._bodyEditor.elem());
