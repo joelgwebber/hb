@@ -30,6 +30,11 @@ module onde {
     constructor(private _ctx: Context, private _elem: HTMLElement) {
       // Capture mouse clicks and forward certain links to pushState().
       _elem.addEventListener("click", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) {
+          // Don't eat anything but normal left-clicks.
+          return;
+        }
+
         var a = nearestAnchor(<Node>e.target);
         if (a) {
           if (a.host == location.host) {

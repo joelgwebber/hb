@@ -5,25 +5,25 @@
 /// <reference path="views.ts" />
 /// <reference path="context.ts" />
 /// <reference path="carddetail.ts" />
+/// <reference path="carddetaildlg.ts" />
 /// <reference path="savedsearches.ts" />
 /// <reference path="history.ts" />
 
 module onde {
   var DEBUG = true;
 
-  class Onde extends TemplateView implements Context {
+  export class UI extends TemplateView implements Context {
     private _connection: Connection;
 
     private _savedSearches: SavedSearches;
     private _searchBox: SearchBox;
-    private _detail: CardDetail;
+    private _detail: CardDetailDialog;
     private _statusElem;
     private _createElem;
     private _history: HistoryNode;
-    private _uiHistory: HistoryNode;
 
     constructor(private _user: string, private _pass: string) {
-      super("Onde");
+      super("UI");
 
       this._connection = new Connection(this);
 
@@ -47,7 +47,7 @@ module onde {
           body: "",
           kind: "note"
         }, (rsp) => {
-          this.showCardDetail(rsp.CardId);
+          this._history.navigate(["card", rsp.CardId]);
         });
       };
 
@@ -102,7 +102,7 @@ module onde {
 
     private showCardDetail(cardId: string) {
       this.hideCardDetail();
-      this._detail = new CardDetail(this, cardId);
+      this._detail = new CardDetailDialog(this, cardId);
       this._detail.onRequestClose = () => {
         window.history.back();
       };
@@ -154,9 +154,9 @@ module onde {
     }
     return result;
   }
+}
 
-  export function main() {
-    // Quick hack to do user/pass
+// Quick hack to do user/pass
 // TODO: move this to cookie session token.
 //    var params = parseQuery();
 //    var user = params["user"];
@@ -166,8 +166,7 @@ module onde {
 //      return;
 //    }
 
-    var user = "joel", pass = "bubba42";
-    var onde = new Onde(user, pass);
-    document.body.appendChild(onde.elem());
-  }
-}
+var user = "joel", pass = "bubba42";
+var ui = new onde.UI(user, pass);
+document.body.appendChild(ui.elem());
+

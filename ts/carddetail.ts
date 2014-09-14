@@ -4,7 +4,7 @@
 
 module onde {
 
-  export class CardDetail extends Dialog {
+  export class CardDetail extends TemplateView {
     private _titleViewer: TextViewer;
     private _bodyViewer: MarkViewer;
     private _kindEditor: SelectEditor;
@@ -14,8 +14,6 @@ module onde {
     private _commentList: CommentList;
     private _card: Card;
     private _editing = false;
-
-    onRequestClose: () => void;
 
     constructor(private _ctx: Context, private _cardId: string) {
       super("CardDetail");
@@ -39,31 +37,14 @@ module onde {
 
       this._editing = true;
       this.toggleEdit();
-      this.$(".edit-mode").onclick = (e) => { this.toggleEdit(); };
-
-      this.$('.close').onclick = () => { this.requestHide(); };
+      this.$(".edit-mode").onclick = () => { this.toggleEdit(); };
 
       this._commentList.setCardId(this._cardId);
     }
 
-    show() {
-      if (this.showing()) {
-        return;
-      }
-      super.show();
-    }
-
-    hide() {
-      if (!this.showing()) {
-        return;
-      }
-      super.hide();
+    release() {
       this._card.release();
       this._card = null;
-    }
-
-    requestHide() {
-      this.onRequestClose();
     }
 
     private toggleEdit() {

@@ -17,8 +17,13 @@ body {
   text-overflow: ellipsis;
 }
 
-.Onde {
+.UI {
   > .container {
+    position: absolute;
+    left: 0;
+    right: 0px;
+    top: 0;
+    bottom: 24px;
   }
 
   .create {
@@ -38,10 +43,28 @@ body {
   }
 }
 
+.CardUI {
+  > .container {
+    position: absolute;
+    left: 0;
+    right: 0px;
+    top: 0;
+    bottom: 24px;
+  }
+
+  .status {
+    position: absolute;
+    left: 0;
+    right: 0px;
+    height: 24px;
+    bottom: 0;
+  }
+}
+
 .SavedSearches {
   position: absolute;
   top: 0;
-  bottom: 24px;
+  bottom: 0;
   left: 0;
   width: 192px;
 
@@ -60,7 +83,7 @@ body {
   left: 192px;
   right: 0;
   top: 0;
-  bottom: 24px;
+  bottom: 0;
   overflow: auto;
 
   > .entry {
@@ -97,14 +120,43 @@ body {
   }
 }
 
-.CardDetail {
+.CardDetailDialog {
   position: absolute;
   left: 256px;
   right: 0;
   top: 0;
   bottom: 0;
-  background-color: white;
   border: 1px solid black;
+
+  > .container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+
+  > .close {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    right: 0;
+    top: 0;
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid red;
+    color: red;
+    cursor: pointer;
+  }
+}
+
+.CardDetail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: white;
 
   > .kind {
     position: absolute;
@@ -129,19 +181,6 @@ body {
     top: 0;
     right: 20px;
     width: 48px;
-  }
-
-  > .close {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    right: 0;
-    top: 0;
-    background-color: white;
-    border-radius: 8px;
-    border: 1px solid red;
-    color: red;
-    cursor: pointer;
   }
 
   > .display {
