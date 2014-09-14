@@ -4,6 +4,20 @@
 /// <reference path="lib/stmd.d.ts" />
 
 module onde {
+
+  function nearestAnchor(node: Node): HTMLAnchorElement {
+    while (node) {
+      if (node.nodeType == Node.ELEMENT_NODE) {
+        var elem = <HTMLElement>node;
+        if (elem.tagName.toLowerCase() == 'a') {
+          return <HTMLAnchorElement>elem;
+        }
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
   // Basic CommonMark viewer.
   // TODO: This is pretty inefficient, because it re-renders from scratch every time it gets an op.
   //   It looks like there might be some methods in the parser for updating its model incrementally.
@@ -13,7 +27,19 @@ module onde {
     private _parser = new stmd.DocParser();
     private _renderer = new stmd.HtmlRenderer();
 
-    constructor(private _elem: HTMLElement) {
+    constructor(private _ctx: Context, private _elem: HTMLElement) {
+      // Capture mouse clicks and forward certain links to pushState().
+      _elem.addEventListener("click", (e) => {
+        var a = nearestAnchor(<Node>e.target);
+        if (a) {
+          if (a.host == location.host) {
+            if (a.pathname.indexOf("/card/") == 0) {
+              e.preventDefault();
+              _ctx.history().navigate(a.pathname.slice(1).split("/"));
+            }
+          }
+        }
+      }, true);
     }
 
     bind(card: Card, prop: string) {

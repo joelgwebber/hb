@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Onde</title>
-  <link rel="stylesheet" href="onde.css">
+  <link rel="stylesheet" href="/onde.css">
 </head>
 
 <body>
@@ -27,9 +27,10 @@
     </div>
 
     <div id="|CardDetail" class="CardDetail">
-      <div class="close">x</div>
-      <label class="done-label">done</label>
+      <select class="kind"></select>
+      <label class="done-label"><input type="checkbox" class="done">done</label>
       <button class="edit-mode">edit</button>
+      <div class="close">x</div>
       <div class="display">
         <div class="title"></div>
         <div class="body"></div>
@@ -42,9 +43,9 @@
     </div>
   </div>
 
-  <script src="lib/sockjs/sockjs-0.3.min.js"></script>
-  <script src="lib/ace/src-noconflict/ace.js"></script>
-  <script src="lib/stmd/stmd.js"></script>
-  <script src="onde.js"></script>
+  <script src="/lib/sockjs/sockjs-0.3.min.js"></script>
+  <script src="/lib/ace/src-noconflict/ace.js"></script>
+  <script src="/lib/stmd/stmd.js"></script>
+  <script src="/onde.js"></script>
 </body>
 </html>

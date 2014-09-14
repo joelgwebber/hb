@@ -16,5 +16,5 @@ func NewUser(id, pass string) (error) {
 }
 
 func solrId(id string) string {
-	return "user/" + id
+	return "user|" + id
 }

@@ -106,6 +106,31 @@ body {
   background-color: white;
   border: 1px solid black;
 
+  > .kind {
+    position: absolute;
+    top: 0;
+    right: 120px;
+    width: 64px;
+  }
+
+  > .done-label {
+    position: absolute;
+    top: 0;
+    right: 70px;
+    width: 48px;
+    font-size: 12px;
+
+    > .done {
+    }
+  }
+
+  > .edit-mode {
+    position: absolute;
+    top: 0;
+    right: 20px;
+    width: 48px;
+  }
+
   > .close {
     position: absolute;
     width: 16px;
@@ -119,29 +144,11 @@ body {
     cursor: pointer;
   }
 
-  > .done-label {
-    position: absolute;
-    top: 0;
-    right: 20px;
-    width: 48px;
-    font-size: 12px;
-
-    > .done {
-    }
-  }
-
-  > .edit-mode {
-    position: absolute;
-    top: 0;
-    right: 70px;
-    width: 42px;
-  }
-
   > .display {
     > .title {
       position: absolute;
       left: 0;
-      right: 120px;
+      right: 200px;
       top: 0;
       height: 32px;
       line-height: 24px;
@@ -163,7 +170,7 @@ body {
     > .title {
       position: absolute;
       left: 0;
-      right: 120px;
+      right: 200px;
       top: 0;
       height: 32px;
 

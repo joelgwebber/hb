@@ -11,27 +11,16 @@
 
 module onde {
 
-  // Very simple editor that binds a checkbox to a "true/false" property.
-  // If this editor finds it changed to something other than true/false, it will treat it as "false".
-  // TODO: Implement simple typed properties so we can drop all this stupid stringly-typed code.
-  export class CheckboxEditor implements View {
-    private _elem: HTMLInputElement;
-    private _card: Card;
-    private _prop: string;
-    private _binding: Binding;
+  // Abstract base class for simple editors that always set the entire value at once.
+  export class BasicEditor implements View {
+    _card: Card;
+    _prop: string;
+    _binding: Binding;
 
-    constructor() {
-      this._elem = <HTMLInputElement>document.createElement("input");
-      this._elem.type = "checkbox";
-      this._elem.onchange = () => {
-        // Construct ops that clobber the whole value by deleting everything first.
-        var value = this._elem.checked ? "true" : "false";
-        var len = this._card.prop(this._prop).length;
-        this._binding.revise([0, -len, value]);
-      };
+    constructor(public _elem: HTMLElement) {
     }
 
-    elem(): HTMLInputElement {
+    elem(): HTMLElement {
       return this._elem;
     }
 
@@ -42,12 +31,9 @@ module onde {
       this.unbind();
 
       this._binding = card.bind(prop, (value) => {
-        this._elem.checked = value == "true";
+        this._onValueChange(value);
       }, (ops) => {
-        // Skip the ops and just use the value directly.
-        // We don't care about partial edits, which should never occur anyway.
-        var value = card.prop(prop);
-        this._elem.checked = value == "true";
+        this._onValueChange(card.prop(prop));
       });
     }
 
@@ -56,6 +42,64 @@ module onde {
         this._binding.release();
         this._binding = null;
       }
+    }
+
+    _setValue(value: string) {
+      var len = this._card.prop(this._prop).length;
+      this._binding.revise([0, -len, value]);
+    }
+
+    _onValueChange(value: string) { throw "abstract"; }
+  }
+
+  export class SelectEditor extends BasicEditor {
+
+    constructor(options: string[], captions: string[], elem: HTMLSelectElement = null) {
+      super(elem || document.createElement("select"));
+      if (options.length != captions.length) {
+        throw "options/captions size mismatch";
+      }
+      for (var i = 0; i < options.length; ++i) {
+        var option = <HTMLOptionElement>document.createElement("option");
+        option.value = options[i];
+        option.text = captions[i];
+        this.elem().appendChild(option);
+      }
+
+      this.elem().onchange = (e) => {
+        this._setValue(this.elem().value);
+      };
+    }
+
+    elem(): HTMLSelectElement {
+      return <HTMLSelectElement>super.elem();
+    }
+
+    _onValueChange(value: string) {
+      this.elem().value = value;
+    }
+  }
+
+  // Very simple editor that binds a checkbox to a "true/false" property.
+  // If this editor finds it changed to something other than true/false, it will treat it as "false".
+  // TODO: Implement simple typed properties so we can drop all this stupid stringly-typed code.
+  export class CheckboxEditor extends BasicEditor {
+
+    constructor(elem: HTMLInputElement = null) {
+      super(elem || document.createElement("input"));
+      this.elem().type = "checkbox";
+      this._elem.onchange = () => {
+        // Construct ops that clobber the whole value by deleting everything first.
+        this._setValue(this.elem().checked ? "true" : "false");
+      };
+    }
+
+    elem(): HTMLInputElement {
+      return <HTMLInputElement>super.elem();
+    }
+
+    _onValueChange(value: string) {
+      this.elem().checked = value == "true";
     }
   }
 
@@ -73,7 +117,7 @@ module onde {
     constructor() {
       this._elem = <HTMLInputElement>document.createElement("input");
 
-      var eventNames = ['textInput', 'keydown', 'keyup', 'select', 'cut', 'paste'];
+      var eventNames = ["textInput", "keydown", "keyup", "select", "cut", "paste"];
       for (var i = 0; i < eventNames.length; i++) {
         this._elem.addEventListener(eventNames[i], (e) => { this.genOp(e); }, false);
       }
@@ -108,7 +152,7 @@ module onde {
     private genOp(e: Event) {
       setTimeout(() => {
         if (this._elem.value !== this._prevValue) {
-          var ops = this.makeChange(this._prevValue, this._elem.value.replace(/\r\n/g, '\n'));
+          var ops = this.makeChange(this._prevValue, this._elem.value.replace(/\r\n/g, "\n"));
           if (ops) {
             this._binding.revise(ops);
           }
@@ -161,7 +205,7 @@ module onde {
 
       // Remove any window-style newline characters. Windows inserts these, and
       // they mess up the generated diff.
-      var prev = this._elem.value.replace(/\r\n/g, '\n');
+      var prev = this._elem.value.replace(/\r\n/g, "\n");
       this.replaceText(prev.slice(0, pos) + text + prev.slice(pos), transformCursor);
     }
 
@@ -172,7 +216,7 @@ module onde {
         return pos < cursor ? cursor - Math.min(length, cursor - pos) : cursor;
       };
 
-      var prev = this._elem.value.replace(/\r\n/g, '\n');
+      var prev = this._elem.value.replace(/\r\n/g, "\n");
       this.replaceText(prev.slice(0, pos) + prev.slice(pos + length), transformCursor);
     }
 
@@ -227,7 +271,7 @@ module onde {
 
       this._session.setUseWrapMode(true);
 
-      this._acedoc.on('change', (e) => {
+      this._acedoc.on("change", (e) => {
         if (this._merge) {
           // Don't re-send changes due to ops being applied (or if the card's not yet loaded).
           return;
@@ -266,7 +310,7 @@ module onde {
     }
   }
 
-  var range = ace.require('ace/range');
+  var range = ace.require("ace/range");
 
   function utf8OffsetToPos(lines: string[], off: number, startrow: number): Ace.Position {
     if (!startrow) {
@@ -307,7 +351,7 @@ module onde {
 
   function documentLines(acedoc: Ace.Document): string[] {
     // HACK: Reach in and grab $lines private, because it's a hell of a lot more efficient.
-    return acedoc['$lines'] || acedoc.getAllLines();
+    return acedoc["$lines"] || acedoc.getAllLines();
   }
 
   function joinLines(lines: string[]): string {

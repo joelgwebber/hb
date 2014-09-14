@@ -5,5 +5,6 @@ module onde {
   export interface Context {
     log(msg: any);
     connection(): Connection;
+    history(): HistoryNode;
   }
 }

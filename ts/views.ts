@@ -75,10 +75,6 @@ module onde {
     constructor(id: string, private _container: HTMLElement = null) {
       super(id);
 
-      if (this.hasChild('.close')) {
-        this.$('.close').onclick = () => { this.hide(); };
-      }
-
       // By default, put the dialog box on the body element, and show 'glass' underneath.
       if (this._container == null) {
         this._container = document.body;
@@ -100,7 +96,7 @@ module onde {
         this._glass = document.createElement('div');
         this._glass.className = 'DialogGlass';
         this._container.appendChild(this._glass);
-        this._glass.onclick = () => { this.hide(); };
+        this._glass.onclick = () => { this.requestHide(); };
       }
       this._container.appendChild(<HTMLElement>this.elem());
     }
@@ -115,6 +111,10 @@ module onde {
       if (this._showGlass) {
         this._container.removeChild(this._glass);
       }
+    }
+
+    requestHide() {
+      this.hide();
     }
   }
 }

@@ -7,6 +7,7 @@ module onde {
   export class CardDetail extends Dialog {
     private _titleViewer: TextViewer;
     private _bodyViewer: MarkViewer;
+    private _kindEditor: SelectEditor;
     private _titleEditor: TextInputEditor;
     private _bodyEditor: AceEditor;
     private _doneEditor: CheckboxEditor;
@@ -14,28 +15,33 @@ module onde {
     private _card: Card;
     private _editing = false;
 
+    onRequestClose: () => void;
+
     constructor(private _ctx: Context, private _cardId: string) {
       super("CardDetail");
 
       this._titleEditor = new TextInputEditor();
-      this._doneEditor = new CheckboxEditor();
+      this._kindEditor = new SelectEditor(["note", "idea", "effort"], ["Note", "Idea", "Effort"], <HTMLSelectElement>this.$(".kind"));
+      this._doneEditor = new CheckboxEditor(<HTMLInputElement>this.$(".done"));
       this._bodyEditor = new AceEditor();
       this._commentList = new CommentList(_ctx);
 
       this._titleViewer = new TextViewer(this.$('.display > .title'));
-      this._bodyViewer = new MarkViewer(this.$('.display > .body'));
+      this._bodyViewer = new MarkViewer(_ctx, this.$('.display > .body'));
 
       this.$(".edit > .title").appendChild(this._titleEditor.elem());
       this.$(".edit > .body").appendChild(this._bodyEditor.elem());
-      this.$(".done-label").insertBefore(this._doneEditor.elem(), this.$(".done-label").firstChild);
       this.$(".comments").appendChild(this._commentList.elem());
 
       this._card = new Card(this._ctx, this._cardId);
+      this._kindEditor.bind(this._card, "kind");
       this._doneEditor.bind(this._card, "done");
 
       this._editing = true;
       this.toggleEdit();
       this.$(".edit-mode").onclick = (e) => { this.toggleEdit(); };
+
+      this.$('.close').onclick = () => { this.requestHide(); };
 
       this._commentList.setCardId(this._cardId);
     }
@@ -54,6 +60,10 @@ module onde {
       super.hide();
       this._card.release();
       this._card = null;
+    }
+
+    requestHide() {
+      this.onRequestClose();
     }
 
     private toggleEdit() {

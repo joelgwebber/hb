@@ -130,7 +130,7 @@ func Create(connId string, props map[string]string) (cardId string, err error) {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, cardIdInt)
 	cardIdBuf := &bytes.Buffer{}
-	base64.NewEncoder(base64.StdEncoding, cardIdBuf).Write(buf)
+	base64.NewEncoder(base64.URLEncoding, cardIdBuf).Write(buf)
 	cardId = cardIdBuf.String()
 
 	newProps := make(map[string]*ot.Doc)

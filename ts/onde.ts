@@ -6,6 +6,7 @@
 /// <reference path="context.ts" />
 /// <reference path="carddetail.ts" />
 /// <reference path="savedsearches.ts" />
+/// <reference path="history.ts" />
 
 module onde {
   var DEBUG = true;
@@ -18,6 +19,8 @@ module onde {
     private _detail: CardDetail;
     private _statusElem;
     private _createElem;
+    private _history: HistoryNode;
+    private _uiHistory: HistoryNode;
 
     constructor(private _user: string, private _pass: string) {
       super("Onde");
@@ -34,12 +37,15 @@ module onde {
       container.appendChild(this._savedSearches.elem());
       container.appendChild(this._searchBox.elem());
 
-      this._searchBox.onSelectCard = (cardId) => { this.showCardDetail(cardId); };
+      this._searchBox.onSelectCard = (cardId) => {
+        this._history.navigate(["card", cardId]);
+      };
 
       this._createElem.onclick = (e) => {
         this.connection().createCard({
           type: "card",
-          body: "..."
+          body: "",
+          kind: "note"
         }, (rsp) => {
           this.showCardDetail(rsp.CardId);
         });
@@ -63,12 +69,51 @@ module onde {
       return this._connection;
     }
 
+    history(): HistoryNode {
+      return this._history;
+    }
+
+    private initHistory() {
+      new History().register((state, child) => {
+        this._history = child;
+        if (state != "ui") {
+          this._history.navigate(["ui"]);
+          return;
+        }
+
+        this._history.register((state, child) => {
+          switch (state) {
+            case "card":
+              child.register((state, _) => {
+                this.showCardDetail(state);
+              });
+              break;
+            case "":
+              this.hideCardDetail();
+              break;
+            default:
+              // Map invalid states back to /ui.
+              this._history.navigate([""], true);
+              break;
+          }
+        });
+      });
+    }
+
     private showCardDetail(cardId: string) {
+      this.hideCardDetail();
+      this._detail = new CardDetail(this, cardId);
+      this._detail.onRequestClose = () => {
+        window.history.back();
+      };
+      this._detail.show();
+    }
+
+    private hideCardDetail() {
       if (this._detail) {
         this._detail.hide();
+        this._detail = null;
       }
-      this._detail = new CardDetail(this, cardId);
-      this._detail.show();
     }
 
     private setStatus(msg: string) {
@@ -91,6 +136,7 @@ module onde {
     }
 
     private onLogin() {
+      this.initHistory();
       this.setStatus("logged in");
       if (!this._searchBox.curQuery()) {
         // Do a default search to get the ball rolling.
@@ -111,14 +157,16 @@ module onde {
 
   export function main() {
     // Quick hack to do user/pass
-    var params = parseQuery();
-    var user = params["user"];
-    var pass = params["pass"];
-    if (!user || !pass) {
-      window.alert("Remember to use ?user=...&pass=... on the query string");
-      return;
-    }
+// TODO: move this to cookie session token.
+//    var params = parseQuery();
+//    var user = params["user"];
+//    var pass = params["pass"];
+//    if (!user || !pass) {
+//      window.alert("Remember to use ?user=...&pass=... on the query string");
+//      return;
+//    }
 
+    var user = "joel", pass = "bubba42";
     var onde = new Onde(user, pass);
     document.body.appendChild(onde.elem());
   }
