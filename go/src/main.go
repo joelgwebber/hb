@@ -9,11 +9,17 @@ import (
 )
 
 var tmpls *template.Template
-var uiTemplates template.HTML
 
 func uiServer(tmplName string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := tmpls.ExecuteTemplate(w, tmplName, template.HTML(uiTemplates))
+		// Re-read these every time, so we don't have to restart the server to pick up changes.
+		frag, err := ioutil.ReadFile("pub/templates.fragment.html")
+		if err != nil {
+			panic(err)
+		}
+
+		uiTemplates := template.HTML(frag)
+		err = tmpls.ExecuteTemplate(w, tmplName, template.HTML(uiTemplates))
 		if err != nil {
 			panic(err)
 		}
@@ -27,11 +33,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	frag, err := ioutil.ReadFile("pub/templates.fragment.html")
-	if err != nil {
-		panic(err)
-	}
-	uiTemplates = template.HTML(frag)
 
 	// Handlers.
 	http.Handle("/", http.FileServer(http.Dir("pub")))

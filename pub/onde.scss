@@ -158,83 +158,44 @@ body {
   bottom: 0;
   background-color: white;
 
-  > .kind {
-    position: absolute;
-    top: 0;
-    right: 120px;
-    width: 64px;
-  }
-
-  > .done-label {
-    position: absolute;
-    top: 0;
-    right: 70px;
-    width: 48px;
-    font-size: 12px;
-
-    > .done {
-    }
-  }
-
-  > .edit-mode {
-    position: absolute;
-    top: 0;
-    right: 20px;
-    width: 48px;
-  }
-
-  > .display {
-    > .title {
-      position: absolute;
-      left: 0;
-      right: 200px;
-      top: 0;
-      height: 32px;
-      line-height: 24px;
-      font-size: 16px;
-    }
-
-    > .body {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 40px;
-      height: 384px;
-    }
-  }
-
-  > .edit {
-    display: none;
-
-    > .title {
-      position: absolute;
-      left: 0;
-      right: 200px;
-      top: 0;
-      height: 32px;
-
-      > input {
-        width: 100%;
-        line-height: 24px;
-        font-size: 16px;
-      }
-    }
-
-    > .body {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 40px;
-      height: 384px;
-    }
-  }
-
-  > .comments {
+  > .scroller {
     position: absolute;
     left: 0;
     right: 0;
-    top: 432px;
+    top: 0;
     bottom: 0;
+    overflow: auto;
+    padding: 8px;
+
+    > .display {
+      > .title {
+        line-height: 24px;
+        font-size: 16px;
+      }
+
+      > .body {
+      }
+    }
+
+    > .edit {
+      display: none;
+
+      > .title {
+        > input {
+          width: 100%;
+          line-height: 24px;
+          font-size: 16px;
+        }
+      }
+
+      > .body {
+        position: relative;
+        height: 512px;
+      }
+    }
+
+    > .comments {
+    }
   }
 }
 
@@ -247,6 +208,8 @@ body {
 }
 
 .CommentList {
+  position: relative;
+
   > .create {
     position: absolute;
     right: 0;
@@ -254,11 +217,11 @@ body {
   }
 
   > .editor {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 24px;
+//    position: absolute;
+//    left: 0;
+//    right: 0;
+//    top: 0;
+//    height: 24px;
 
     > textarea {
       width: 90%;
@@ -266,11 +229,11 @@ body {
   }
 
   > .results {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 64px;
-    bottom: 0;
+//    position: absolute;
+//    left: 0;
+//    right: 0;
+//    top: 64px;
+//    bottom: 0;
   }
 }
 
