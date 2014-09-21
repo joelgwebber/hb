@@ -1,4 +1,5 @@
 /// <reference path="editors.ts" />
+/// <reference path="richtext.ts" />
 /// <reference path="viewers.ts" />
 /// <reference path="card.ts" />
 
@@ -9,7 +10,7 @@ module onde {
     private _bodyViewer: MarkViewer;
     private _kindEditor: SelectEditor;
     private _titleEditor: TextInputEditor;
-    private _bodyEditor: AceEditor;
+    private _bodyEditor: RichTextEditor;
     private _doneEditor: CheckboxEditor;
     private _commentList: CommentList;
     private _card: Card;
@@ -21,7 +22,7 @@ module onde {
       this._titleEditor = new TextInputEditor();
       this._kindEditor = new SelectEditor(["note", "idea", "effort"], ["Note", "Idea", "Effort"], <HTMLSelectElement>this.$(".kind"));
       this._doneEditor = new CheckboxEditor(<HTMLInputElement>this.$(".done"));
-      this._bodyEditor = new AceEditor();
+      this._bodyEditor = new RichTextEditor();
       this._commentList = new CommentList(_ctx);
 
       this._titleViewer = new TextViewer(this.$('.display > .title'));

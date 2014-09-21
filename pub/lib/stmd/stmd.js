@@ -1,3 +1,5 @@
+// https://github.com/jgm/stmd/commit/23e31a709cb390770bcdee8808ca4265707e7722
+
 // stmd.js - CommomMark in javascript
 // Copyright (C) 2014 John MacFarlane
 // License: BSD3.
@@ -856,7 +858,7 @@
     }
     if ((match = rest.match(/^[*+-]( +|$)/))) {
       spaces_after_marker = match[1].length;
-      data.type = 'Bullet';
+      data.type = 'Bullet';;
       data.bullet_char = match[0][0];
 
     } else if ((match = rest.match(/^(\d+)([.)])( +|$)/))) {

@@ -152,7 +152,7 @@ module onde {
     private genOp(e: Event) {
       setTimeout(() => {
         if (this._elem.value !== this._prevValue) {
-          var ops = this.makeChange(this._prevValue, this._elem.value.replace(/\r\n/g, "\n"));
+          var ops = makeChange(this._prevValue, this._elem.value.replace(/\r\n/g, "\n"));
           if (ops) {
             this._binding.revise(ops);
           }
@@ -219,33 +219,33 @@ module onde {
       var prev = this._elem.value.replace(/\r\n/g, "\n");
       this.replaceText(prev.slice(0, pos) + prev.slice(pos + length), transformCursor);
     }
+  }
 
-    private makeChange(oldval: string, newval: string): any[] {
-      if (oldval === newval) {
-        return null;
-      }
-
-      var commonStart = 0;
-      while (oldval.charAt(commonStart) === newval.charAt(commonStart)) {
-        commonStart++;
-      }
-
-      var commonEnd = 0;
-      while ((oldval.charAt(oldval.length - 1 - commonEnd) === newval.charAt(newval.length - 1 - commonEnd)) &&
-          (commonEnd + commonStart < oldval.length && commonEnd + commonStart < newval.length)) {
-        commonEnd++;
-      }
-
-      var ret: any[] = [commonStart];
-      if (oldval.length !== commonStart + commonEnd) {
-        ret.push(-(oldval.length - commonStart - commonEnd));
-      }
-      if (newval.length !== commonStart + commonEnd) {
-        ret.push(newval.slice(commonStart, newval.length - commonEnd));
-      }
-      ret.push(commonEnd);
-      return ret;
+  export function makeChange(oldval: string, newval: string): any[] {
+    if (oldval === newval) {
+      return null;
     }
+
+    var commonStart = 0;
+    while (oldval.charAt(commonStart) === newval.charAt(commonStart)) {
+      commonStart++;
+    }
+
+    var commonEnd = 0;
+    while ((oldval.charAt(oldval.length - 1 - commonEnd) === newval.charAt(newval.length - 1 - commonEnd)) &&
+        (commonEnd + commonStart < oldval.length && commonEnd + commonStart < newval.length)) {
+      commonEnd++;
+    }
+
+    var ret: any[] = [commonStart];
+    if (oldval.length !== commonStart + commonEnd) {
+      ret.push(-(oldval.length - commonStart - commonEnd));
+    }
+    if (newval.length !== commonStart + commonEnd) {
+      ret.push(newval.slice(commonStart, newval.length - commonEnd));
+    }
+    ret.push(commonEnd);
+    return ret;
   }
 
   // Component that binds an Ace-based text editor to a Card.
