@@ -25,7 +25,6 @@ module onde {
   export class MarkViewer implements View {
     private _binding: Binding;
     private _parser = new stmd.DocParser();
-    private _renderer = new stmd.HtmlRenderer();
 
     constructor(private _ctx: Context, private _elem: HTMLElement) {
       // Capture mouse clicks and forward certain links to pushState().
@@ -71,7 +70,8 @@ module onde {
 
     private update(source: string) {
       var doc = this._parser.parse(source);
-      this._elem.innerHTML = this._renderer.render(doc);
+      this._elem.innerHTML = '';
+      dom.render(this._elem, doc);
     }
   }
 

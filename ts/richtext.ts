@@ -51,7 +51,10 @@ module onde {
         this._elem.innerHTML = '';
         this.merge(() => { dom.render(this._elem, this._doc); });
       }, (ops) => {
-        this.merge(() => { /* TODO */ console.log(ops); });
+        this.merge(() => {
+          // TODO: Surgically update the dom to reflect these changes.
+          dom.render(this._elem, this._doc);
+        });
       })
     }
 
@@ -77,6 +80,7 @@ module onde {
       }
       this._value = md;
 
+// TODO: Look at the precise set of mutations in order to generate ops efficiently.
 //      for (var i = 0; i < recs.length; ++i) {
 //        var m = recs[i];
 //        if (m.target) {
@@ -108,7 +112,7 @@ module onde {
   }
 
   // Markdown DOM renderer adapted from stmd.js.
-  module dom {
+  export module dom {
     export class Parser {
       private static STATE_BLOCK = 0;
       private static STATE_UL = 1;

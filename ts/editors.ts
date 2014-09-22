@@ -226,25 +226,37 @@ module onde {
       return null;
     }
 
-    var commonStart = 0;
-    while (oldval.charAt(commonStart) === newval.charAt(commonStart)) {
+    var commonStart = 0, firstLen = 0;
+    while (true) {
+      var oldch = oldval.charCodeAt(commonStart);
+      var newch = newval.charCodeAt(commonStart);
+      if (oldch != newch) {
+        break;
+      }
       commonStart++;
+      firstLen += ot.utf8codelen(oldch);
     }
 
-    var commonEnd = 0;
-    while ((oldval.charAt(oldval.length - 1 - commonEnd) === newval.charAt(newval.length - 1 - commonEnd)) &&
-        (commonEnd + commonStart < oldval.length && commonEnd + commonStart < newval.length)) {
+    var commonEnd = 0, lastLen = 0;
+    while (true) {
+      var oldch = oldval.charCodeAt(oldval.length - 1 - commonEnd);
+      var newch = newval.charCodeAt(newval.length - 1 - commonEnd);
+      var pos = commonEnd + commonStart;
+      if ((oldch != newch) || (pos >= oldval.length) || (pos >= newval.length)) {
+        break;
+      }
       commonEnd++;
+      lastLen += ot.utf8codelen(oldch);
     }
 
-    var ret: any[] = [commonStart];
+    var ret: any[] = [firstLen];
     if (oldval.length !== commonStart + commonEnd) {
-      ret.push(-(oldval.length - commonStart - commonEnd));
+      ret.push(-(ot.utf8len(oldval) - (firstLen + lastLen)));
     }
     if (newval.length !== commonStart + commonEnd) {
       ret.push(newval.slice(commonStart, newval.length - commonEnd));
     }
-    ret.push(commonEnd);
+    ret.push(lastLen);
     return ret;
   }
 

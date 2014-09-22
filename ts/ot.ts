@@ -24,11 +24,7 @@ module ot {
   export function ucs2len(str: string, pos: number, len: number): number {
     var out = 0;
     while (len > 0) {
-      var c = str.charCodeAt(pos++);
-      if (c > 0x10000) len -= 4;
-      else if (c > 0x800) len -= 3;
-      else if (c > 0x80) len -= 2;
-      else len -= 1;
+      len -= utf8codelen(str.charCodeAt(pos++));
       out++;
     }
     if (len != 0) {
@@ -41,13 +37,16 @@ module ot {
   export function utf8len(str: string): number {
     var n = 0;
     for (var i = 0; i < str.length; i++) {
-      var c = str.charCodeAt(i);
-      if (c > 0x10000) n += 4;
-      else if (c > 0x800) n += 3;
-      else if (c > 0x80) n += 2;
-      else n += 1;
+      n += utf8codelen(str.charCodeAt(i));
     }
     return n;
+  }
+
+  export function utf8codelen(c: number): number {
+    if (c > 0x10000) return 4;
+    else if (c > 0x800) return 3;
+    else if (c > 0x80) return 2;
+    return 1;
   }
 
   // Count returns the number of retained, deleted and inserted bytes.
