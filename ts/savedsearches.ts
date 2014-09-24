@@ -1,19 +1,25 @@
 module onde {
 
+  class SearchItem {
+    constructor(public _name: string, public _search: string, public _elem: HTMLAnchorElement) { }
+  }
+
   export class SavedSearches extends TemplateView {
+    private _items: SearchItem[] = [];
     onSearch: (search: string) => void;
 
     constructor(private _ctx: Context) {
       super("SavedSearches");
 
       // TODO: Make all this dynamic.
-      this.addItem("All cards", "prop_type:card");
-      this.addItem("Undesignated cards", "prop_type:card -prop_kind:effort -prop_kind:note -prop_kind:idea");
       this.addItem("Notes", "prop_type:card prop_kind:note");
       this.addItem("Ideas", "prop_type:card prop_kind:idea");
-      this.addItem("Efforts", "prop_type:card prop_kind:effort");
-      this.addItem("Uncompleted efforts", "prop_type:card prop_kind:effort -prop_done:true");
-      this.addItem("Completed efforts", "prop_type:card prop_kind:effort prop_done:true");
+      this.addItem("Efforts", "prop_type:card prop_kind:effort -prop_done:true");
+      this.addItem("Completed", "prop_type:card prop_kind:effort prop_done:true");
+    }
+
+    selectFirst() {
+      this.onSearch(this._items[0]._search);
     }
 
     private addItem(name: string, search: string) {
@@ -25,6 +31,7 @@ module onde {
         e.preventDefault();
       };
       this.elem().appendChild(a);
+      this._items.push(new SearchItem(name, search, a));
     }
   }
 }

@@ -140,7 +140,7 @@ module onde {
       this.setStatus("logged in");
       if (!this._searchBox.curQuery()) {
         // Do a default search to get the ball rolling.
-        this._searchBox.search("prop_type:card prop_title:* prop_body:*");
+        this._savedSearches.selectFirst();
       }
     }
   }
