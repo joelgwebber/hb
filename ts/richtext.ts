@@ -5,13 +5,24 @@
 
 module onde {
 
+  function isChild(parent: Node, child: Node) {
+    while (child) {
+      if (child == parent) {
+        return true;
+      }
+      child = child.parentNode;
+    }
+    return false;
+  }
+
   // Temporary hack to work around error in old Typescript's lib.d.ts.
   function newMutationObserver(callback : (records : MutationRecord[]) => any) : MutationObserver {
     return new window['MutationObserver'](callback);
   }
 
-  export class RichTextEditor implements View {
-    private _elem: HTMLElement;
+  export class RichTextEditor extends TemplateView {
+    private _editable: HTMLElement;
+    private _preview: HTMLElement;
     private _binding: Binding;
     private _observer: MutationObserver;
     private _doc: stmd.Node;
@@ -20,14 +31,29 @@ module onde {
     private _value = "";
 
     constructor() {
-      this._elem = document.createElement('div');
-      this._elem.contentEditable = "true";
+      super("RichTextEditor");
+
+      this._editable = this.$(".editable");
+      this._preview = this.$(".preview");
+
+      this.$(".bold").onclick = () => { this.execCommand("bold"); };
+      this.$(".italic").onclick = () => { this.execCommand("italic"); };
+      this.$(".ul").onclick = () => { this.execCommand("insertUnorderedList"); };
+      this.$(".ol").onclick = () => { this.execCommand("insertOrderedList"); };
+      this.$(".indent").onclick = () => { this.execCommand("indent"); };
+      this.$(".outdent").onclick = () => { this.execCommand("outdent"); };
+      this.$(".img").onclick = () => { this.execCommand("insertImage", "http://www.google.com/images/logo_sm.gif"); };
+      this.$(".link").onclick = () => { this.execCommand("createLink", "http://www.google.com/"); };
+      this.$(".quote").onclick = () => { this.execCommand("formatBlock", "blockquote"); };
+      this.$(".code").onclick = () => { this.execCommand("formatBlock", "pre"); };
+      this.$(".unformat").onclick = () => { this.execCommand("removeFormat"); };
+
       this._observer = newMutationObserver((recs) => {
         if (!this._merge) {
           this.handleMutations(recs);
         }
       });
-      this._observer.observe(this._elem, {
+      this._observer.observe(this._editable, {
         childList: true,
         attributes: true,
         characterData: true,
@@ -37,10 +63,6 @@ module onde {
       });
     }
 
-    elem(): HTMLElement {
-      return this._elem;
-    }
-
     bind(card: Card, prop: string) {
       this.unbind();
 
@@ -48,12 +70,12 @@ module onde {
       this._binding = card.bind(prop, (value) => {
         this._value = value;
         this._doc = this._parser.parse(value);
-        this._elem.innerHTML = '';
-        this.merge(() => { dom.render(this._elem, this._doc); });
+        this._editable.innerHTML = '';
+        this.merge(() => { dom.render(this._editable, this._doc); });
       }, (ops) => {
         this.merge(() => {
           // TODO: Surgically update the dom to reflect these changes.
-          dom.render(this._elem, this._doc);
+          dom.render(this._editable, this._doc);
         });
       })
     }
@@ -65,6 +87,20 @@ module onde {
       }
     }
 
+    private execCommand(cmd: string, arg: string = undefined) {
+      var sel = window.getSelection();
+      if (sel.rangeCount == 0) {
+        return;
+      }
+
+      var range = sel.getRangeAt(0);
+      if (!isChild(this._editable, range.commonAncestorContainer)) {
+        return;
+      }
+
+      document.execCommand(cmd, false, arg);
+    }
+
     private merge(fn: () => void) {
       this._merge = true;
       fn();
@@ -72,7 +108,8 @@ module onde {
     }
 
     private handleMutations(recs: MutationRecord[]) {
-      var md = new dom.Parser().parse(this._elem);
+      var md = new dom.Parser().parse(this._editable);
+      this._preview.textContent = md;
 
       var ops = makeChange(this._value, md);
       if (ops) {
@@ -118,6 +155,7 @@ module onde {
       private static STATE_UL = 1;
       private static STATE_OL = 2;
       private static STATE_PRE = 3;
+      private static STATE_QUOTE = 4;
 
       private _state = Parser.STATE_BLOCK;
       private _indent = -1;
@@ -133,7 +171,11 @@ module onde {
             var elem = <HTMLElement>node;
             switch (elem.tagName) {
               case 'DIV':
+                if (this._state == Parser.STATE_QUOTE) {
+                  md += "> ";
+                }
                 md += this.parseChildren(elem);
+                md += "\n";
                 break;
               case 'P':
                 md += this.parseChildren(elem);
@@ -161,9 +203,12 @@ module onde {
                 md += this.parseChildren(elem) + '\n';
                 break;
               case 'BLOCKQUOTE':
-                // TDOO: Deal with multiple lines?
-                md += '> ';
+                var oldState = this._state;
+                this._state = Parser.STATE_QUOTE;
+                md += "> ";
                 md += this.parseChildren(elem);
+                this._state = oldState;
+                md += "\n";
                 break;
               case 'PRE':
                 var oldState = this._state;
