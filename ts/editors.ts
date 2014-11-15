@@ -9,7 +9,7 @@
 /// <reference path="card.ts" />
 /// <reference path="lib/ace.d.ts" />
 
-module onde {
+module hb {
 
   // Abstract base class for simple editors that always set the entire value at once.
   export class BasicEditor implements View {

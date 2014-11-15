@@ -4,8 +4,8 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
 	"net/url"
-	. "onde/api"
-	"onde/solr"
+	. "hb/api"
+	"hb/solr"
 	"time"
 )
 
@@ -120,7 +120,7 @@ func (s *Search) Unsubscribe(connId string) {
 
 func (s *Search) update() {
 	// TODO: Basic optimization: Don't requery unless *something* has changed.
-	total, results, err := solr.GetDocs("onde", url.Values{
+	total, results, err := solr.GetDocs("hb", url.Values{
 			"q": []string{s.query},
 			"rows": []string{"500"},
 			"sort": []string{"modified desc"},

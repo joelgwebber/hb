@@ -9,12 +9,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"onde/cherr"
+	"hb/cherr"
 	"os"
 	"path"
 	"strings"
 	"time"
-	"onde/ot"
+	"hb/ot"
 )
 
 const (
@@ -167,14 +167,14 @@ func createCore(orgId string) error {
 	coreName := orgId
 
 	// Create files
-	dir := path.Join(solrHome(), "cores", "onde", orgId)
+	dir := path.Join(solrHome(), "cores", "hb", orgId)
 
 	confdir := path.Join(dir, "conf")
-	if err := copyFile(path.Join(confdir, "solrconfig.xml"), "go/src/onde/solr/solrconfig.xml"); err != nil {
+	if err := copyFile(path.Join(confdir, "solrconfig.xml"), "go/src/hb/solr/solrconfig.xml"); err != nil {
 		return cherr.Errorf(nil, "failed to write solrconfig.xml when creating core for org %s", orgId)
 	}
 
-	if err := copyFile(path.Join(confdir, "schema.xml"), "go/src/onde/solr/schema.xml"); err != nil {
+	if err := copyFile(path.Join(confdir, "schema.xml"), "go/src/hb/solr/schema.xml"); err != nil {
 		return cherr.Errorf(nil, "failed to write schema.xml when creating core for org %s", orgId)
 	}
 

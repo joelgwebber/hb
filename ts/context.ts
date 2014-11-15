@@ -1,6 +1,6 @@
 /// <reference path="connection.ts" />
 
-module onde {
+module hb {
 
   export interface Context {
     log(msg: any);

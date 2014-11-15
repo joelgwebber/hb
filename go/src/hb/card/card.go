@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
-	. "onde/api"
-	"onde/ot"
-	"onde/solr"
+	. "hb/api"
+	"hb/ot"
+	"hb/solr"
 	"strconv"
 	"strings"
-	"onde/api"
+	"hb/api"
 	"hash/fnv"
 	"time"
 	"encoding/base64"
@@ -105,7 +105,7 @@ func newCard(cardId string, done chan<- *Card) (*Card, error) {
 
 	// TODO: I don't like the way we're dealing with JsonObject here.
 	// Consider ditching it and just keeping its little 'get-walker' as a helper func.
-	solrDoc, err := solr.GetDoc("onde", cardId)
+	solrDoc, err := solr.GetDoc("hb", cardId)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func Create(connId string, props map[string]string) (cardId string, err error) {
 		newProps[k] = ot.NewDoc(v)
 	}
 
-	if err = solr.UpdateDoc("onde", cardId, newProps, true); err != nil {
+	if err = solr.UpdateDoc("hb", cardId, newProps, true); err != nil {
 		return "", err
 	}
 
@@ -269,7 +269,7 @@ func (card *Card) broadcast(update cardUpdate, change api.Change) {
 }
 
 func (card *Card) persist() error {
-	return solr.UpdateDoc("onde", card.id, card.props, true)
+	return solr.UpdateDoc("hb", card.id, card.props, true)
 }
 
 func subKey(connId string, subId int) string {

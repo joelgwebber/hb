@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 	"log"
-	_ "onde" // Other handlers and initialization are done in onde's init().
+	_ "hb" // Other handlers and initialization are done in hb's init().
 	"html/template"
 	"io/ioutil"
 )

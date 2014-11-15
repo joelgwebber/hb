@@ -1,4 +1,4 @@
-module onde {
+module hb {
 
   class SearchItem {
     constructor(public _name: string, public _search: string, public _elem: HTMLAnchorElement) { }

@@ -1,4 +1,4 @@
-module onde {
+module hb {
 
   // Message types.
   export var MsgLogin = "login";

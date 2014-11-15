@@ -8,7 +8,7 @@
 /// <reference path="savedsearches.ts" />
 /// <reference path="history.ts" />
 
-module onde {
+module hb {
   var DEBUG = true;
 
   export class CardUI extends TemplateView implements Context {
@@ -102,5 +102,5 @@ module onde {
 }
 
 var user = "joel", pass = "bubba42";
-var ui = new onde.CardUI(user, pass);
+var ui = new hb.CardUI(user, pass);
 document.body.appendChild(ui.elem());

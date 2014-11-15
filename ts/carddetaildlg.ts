@@ -1,6 +1,6 @@
 /// <reference path="carddetail.ts" />
 
-module onde {
+module hb {
 
   export class CardDetailDialog extends Dialog {
     private _detail: CardDetail;

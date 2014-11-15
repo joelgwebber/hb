@@ -3,7 +3,7 @@
 /// <reference path="card.ts" />
 /// <reference path="lib/stmd.d.ts" />
 
-module onde {
+module hb {
 
   function nearestAnchor(node: Node): HTMLAnchorElement {
     while (node) {

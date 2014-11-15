@@ -1,7 +1,7 @@
 /// <reference path="connection.ts" />
 /// <reference path="views.ts" />
 
-module onde {
+module hb {
 
   class SearchCard extends TemplateView {
 

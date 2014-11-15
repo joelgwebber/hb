@@ -1,4 +1,4 @@
-module onde {
+module hb {
 
   export class HistoryNode {
     state: string;

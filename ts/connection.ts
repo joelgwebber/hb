@@ -4,7 +4,7 @@
 // - Implement outgoing message queue.
 // - Re-establish connection automatically (reestablish subscriptions so UI doesn't have to).
 // - Track acknowledged requests.
-module onde {
+module hb {
 
   var LOG_MESSAGES = false;
 

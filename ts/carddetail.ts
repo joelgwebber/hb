@@ -3,7 +3,7 @@
 /// <reference path="viewers.ts" />
 /// <reference path="card.ts" />
 
-module onde {
+module hb {
 
   export class CardDetail extends TemplateView {
     private _titleViewer: TextViewer;

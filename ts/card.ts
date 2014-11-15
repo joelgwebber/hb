@@ -8,7 +8,7 @@
 /// <reference path="connection.ts" />
 /// <reference path="lib/ace.d.ts" />
 
-module onde {
+module hb {
 
   export interface Binding {
     onReady: (value: string) => void;

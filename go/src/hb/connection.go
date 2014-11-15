@@ -1,15 +1,15 @@
-package onde
+package hb
 
 import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"log"
-	. "onde/api"
-	"onde/card"
-	"onde/search"
+	. "hb/api"
+	"hb/card"
+	"hb/search"
 	"strings"
-	"onde/solr"
+	"hb/solr"
 )
 
 type Connection struct {

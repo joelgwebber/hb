@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!-- Doc: http://wiki.apache.org/solr/SchemaXml -->
-<schema name="onde" version="1.0">
+<schema name="hb" version="1.0">
   <uniqueKey>id</uniqueKey>
   <solrQueryParser defaultOperator="AND"/>
 

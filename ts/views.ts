@@ -1,4 +1,4 @@
-module onde {
+module hb {
 
   // Base class for all views. This can be pretty much any class with an associated
   // HTML element.
