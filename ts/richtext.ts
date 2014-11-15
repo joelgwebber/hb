@@ -22,7 +22,7 @@ module hb {
 
   export class RichTextEditor extends TemplateView {
     private _editable: HTMLElement;
-    private _preview: HTMLElement;
+    private _markdown: HTMLElement;
     private _binding: Binding;
     private _observer: MutationObserver;
     private _doc: stmd.Node;
@@ -34,7 +34,20 @@ module hb {
       super("RichTextEditor");
 
       this._editable = this.$(".editable");
-      this._preview = this.$(".preview");
+      this._markdown = this.$(".markdown");
+
+      var showingMarkdown = false;
+      var showButton = this.$(".showmd");
+      showButton.onclick = () => {
+        showingMarkdown = !showingMarkdown;
+        if (showingMarkdown) {
+          this._markdown.classList.add("visible");
+          showButton.textContent = "hide markdown";
+        } else {
+          this._markdown.classList.remove("visible");
+          showButton.textContent = "show markdown";
+        }
+      };
 
       this.$(".bold").onclick = () => { this.execCommand("bold"); };
       this.$(".italic").onclick = () => { this.execCommand("italic"); };
@@ -71,6 +84,7 @@ module hb {
         this._value = value;
         this._doc = this._parser.parse(value);
         this._editable.innerHTML = '';
+        this._markdown.textContent = value;
         this.merge(() => { dom.render(this._editable, this._doc); });
       }, (ops) => {
         this.merge(() => {
@@ -109,7 +123,7 @@ module hb {
 
     private handleMutations(recs: MutationRecord[]) {
       var md = new dom.Parser().parse(this._editable);
-      this._preview.textContent = md;
+      this._markdown.textContent = md;
 
       var ops = makeChange(this._value, md);
       if (ops) {

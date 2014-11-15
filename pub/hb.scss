@@ -190,7 +190,6 @@ body {
 
       > .body {
         position: relative;
-        height: 512px;
       }
     }
 
@@ -245,4 +244,18 @@ body {
   bottom: 0;
   background-color: black;
   opacity: 0.5;
+}
+
+.RichTextEditor {
+  >.buttons { }
+  >.editable { }
+  >.showmd { }
+
+  >.markdown {
+    display: none;
+
+    &.visible {
+      display: block;
+    }
+  }
 }
