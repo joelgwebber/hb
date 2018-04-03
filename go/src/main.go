@@ -1,11 +1,11 @@
 package main
 
 import (
-	"net/http"
-	"log"
 	_ "hb" // Other handlers and initialization are done in hb's init().
 	"html/template"
 	"io/ioutil"
+	"log"
+	"net/http"
 )
 
 var tmpls *template.Template
@@ -37,9 +37,9 @@ func main() {
 	// Handlers.
 	http.Handle("/", http.FileServer(http.Dir("pub")))
 	http.Handle("/ui", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Location", "/ui/")
-			w.WriteHeader(http.StatusMovedPermanently)
-		}))
+		w.Header().Set("Location", "/ui/")
+		w.WriteHeader(http.StatusMovedPermanently)
+	}))
 	http.Handle("/ui/", http.HandlerFunc(uiServer("ui.html")))
 	http.Handle("/card/", http.HandlerFunc(uiServer("card.html")))
 
